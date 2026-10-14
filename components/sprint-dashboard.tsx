@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { toast } from "@heroui/react";
 import { useMutation, useQuery } from "convex/react";
 import { CalendarDays, Clock3, TriangleAlert } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -57,7 +58,6 @@ export function SprintView({ data, actions, preview = false }: { data: SprintDat
   const [progressEntry, setProgressEntry] = useState<SprintEntry | null>(null);
   const [outcomeEditor, setOutcomeEditor] = useState<{ outcome?: SprintOutcome; activity?: SprintEntry } | null>(null);
   const [removing, setRemoving] = useState<{ entry?: SprintEntry; outcome?: SprintOutcome } | null>(null);
-  const [notice, setNotice] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const days = sprintDays(data.startDate, data.endDate);
@@ -70,9 +70,9 @@ export function SprintView({ data, actions, preview = false }: { data: SprintDat
   const selected = data.entries.find((entry) => entry._id === detailId);
   const conflicts = entries.filter((entry) => entry.progress.status !== "skipped" && overlapping(entry, entries, entry._id).length > 0);
   const hasPersonalSprint = !data.management && (data.canPlan || data.readOnly || data.goals.length > 0 || data.outcomes.length > 0 || data.entries.some((entry) => entry.scope === "personal"));
-  function open(entry: SprintEntry) { setDetailId(entry._id); setError(null); setNotice(""); }
+  function open(entry: SprintEntry) { setDetailId(entry._id); setError(null); }
   function exportEntries(items: SprintEntry[]) {
-    try { downloadSprint(items, `${preview ? "Sample · " : ""}${data.cohortName} · Sprint`); setNotice("Calendar exported. Timed activities are events; untimed work is exported as to-dos. This file is a snapshot, not a live calendar sync."); }
+    try { downloadSprint(items, `${preview ? "Sample · " : ""}${data.cohortName} · Sprint`); toast.success("Calendar exported", { description: "Timed activities are events; flexible tasks are to-dos. This file is a snapshot of your Sprint.", timeout: 6000 }); }
     catch { setError("Unable to export your calendar. Try again in this browser."); }
   }
   function selectDay(date: string) { setDay(date); setView("day"); }
@@ -80,7 +80,6 @@ export function SprintView({ data, actions, preview = false }: { data: SprintDat
   return <div className="@container"><div className="space-y-6 @min-[640px]:space-y-8">
     <SprintHeader data={data} sharedOnly={!data.management && !hasPersonalSprint} onAdd={() => setEditor({ day: selectedDay })} onExport={() => exportEntries(data.entries)} />
     {data.readOnly || (!data.canPlan && hasPersonalSprint) ? <p className="rounded-xl bg-soft px-4 py-3 text-xs leading-5 text-muted">{data.readOnly ? "Organizer view · This participant’s Sprint is read-only." : "Personal planning is unavailable for this cohort. Your saved activities and outcomes are still shown."}</p> : !data.canPlan && !data.management ? <div className="rounded-2xl bg-sage/60 px-5 py-4"><p className="text-sm font-medium text-forest">You’re viewing the cohort schedule</p><p className="mt-1 max-w-2xl text-sm leading-6 text-muted">Manage shared activities in the Command Center. Join the cohort as a participant to keep a personal Sprint.</p></div> : null}
-    {notice && !detailId ? <p role="status" className="rounded-xl bg-sage px-4 py-3 text-sm leading-6 text-forest">{notice}</p> : null}
     <InlineError message={detailId ? null : error} />
     {hasPersonalSprint ? <SprintSummary entries={entries} outcomes={data.outcomes} /> : null}
     {conflicts.length ? <div className="flex items-start gap-3 rounded-xl bg-warm p-4 text-sm leading-6 text-foreground"><TriangleAlert className="mt-1 size-4 shrink-0" aria-hidden /><div><p className="font-medium">Some activities overlap</p><p className="text-muted">Open an activity to review its time: {conflicts.map((entry) => entry.title).join(", ")}</p></div></div> : null}
@@ -99,11 +98,11 @@ export function SprintView({ data, actions, preview = false }: { data: SprintDat
       {hasPersonalSprint ? <SprintMissionPanel data={data} preview={preview} /> : null}
     </div>
     {hasPersonalSprint ? <SprintOutcomes data={data} onRecord={() => setOutcomeEditor({})} onEdit={(outcome) => setOutcomeEditor({ outcome })} onRemove={(outcome) => setRemoving({ outcome })} onActivity={(id) => { setDetailId(id); setError(null); }} /> : null}
-    {preview ? <button onClick={() => { resetSampleSprint(); setDay(data.startDate); setNotice("Sample Sprint reset."); }} className="min-h-10 rounded-sm text-sm text-muted underline-offset-4 hover:underline">Reset sample Sprint</button> : null}
+    {preview ? <button onClick={() => { resetSampleSprint(); setDay(data.startDate); toast.success("Sample Sprint reset."); }} className="min-h-10 rounded-sm text-sm text-muted underline-offset-4 hover:underline">Reset sample Sprint</button> : null}
     {detailId ? <ActivityDetails entry={selected} data={data} error={error} busy={busy} onClose={() => setDetailId(null)} onEdit={() => { if (selected) setEditor({ entry: selected }); }} onProgress={() => { if (selected) setProgressEntry(selected); }} onOutcome={() => { if (selected) setOutcomeEditor({ activity: selected }); }} onRemove={() => { if (selected) setRemoving({ entry: selected }); }} onRestore={async () => { if (!selected) return; setBusy(true); setError(null); try { await actions.restoreActivity(selected); } catch (failure) { setError(errorMessage(failure)); } finally { setBusy(false); } }} onExport={() => { if (selected) exportEntries([selected]); }} /> : null}
-    {editor ? <ActivityEditor data={data} entry={editor.entry} initialDay={editor.day} onClose={() => setEditor(null)} onSave={async (input, goalLink, allowOverlap) => { await actions.saveActivity({ input, entry: editor.entry, goalLink, allowOverlap }); setNotice(editor.entry ? "Activity updated." : "Activity added to your Sprint."); setEditor(null); }} /> : null}
-    {progressEntry ? <ProgressEditor data={data} entry={progressEntry} onClose={() => setProgressEntry(null)} onSave={async (input) => { await actions.setProgress(progressEntry, input); setNotice("Progress saved."); setProgressEntry(null); }} /> : null}
-    {outcomeEditor ? <OutcomeEditor data={data} outcome={outcomeEditor.outcome} initialActivityId={outcomeEditor.activity?._id} initialDate={outcomeEditor.activity ? activityDate(outcomeEditor.activity) : selectedDay} onClose={() => setOutcomeEditor(null)} onSave={async (input, activityId) => { await actions.saveOutcome(input, activityId, outcomeEditor.outcome); setNotice("Outcome saved as a self-reported result."); setOutcomeEditor(null); }} /> : null}
-    {removing ? <RemoveSprintDialog title={removing.outcome ? "Remove this outcome?" : removing.entry?.scope === "cohort" ? "Cancel this cohort activity?" : "Remove this activity?"} action={removing.outcome ? "Remove outcome" : removing.entry?.scope === "cohort" ? "Cancel cohort activity" : "Remove activity"} description={removing.outcome ? "This permanently removes the reported outcome. Attendance and mission progress stay as recorded." : removing.entry?.scope === "cohort" ? "The cohort will see this activity as cancelled. It stops contributing to goal progress and calendar exports. You can restore it later." : "This removes the activity and its goal contribution. Any reported outcomes are kept without the activity link."} onClose={() => setRemoving(null)} onRemove={async () => { if (removing.outcome) await actions.removeOutcome(removing.outcome); else if (removing.entry) await actions.removeActivity(removing.entry); setRemoving(null); setDetailId(null); setNotice("Sprint updated."); }} /> : null}
+    {editor ? <ActivityEditor data={data} entry={editor.entry} initialDay={editor.day} onClose={() => setEditor(null)} onSave={async (input, goalLink, allowOverlap) => { await actions.saveActivity({ input, entry: editor.entry, goalLink, allowOverlap }); toast.success(editor.entry ? "Activity updated." : "Activity added to your Sprint."); setEditor(null); }} /> : null}
+    {progressEntry ? <ProgressEditor data={data} entry={progressEntry} onClose={() => setProgressEntry(null)} onSave={async (input) => { await actions.setProgress(progressEntry, input); toast.success("Progress saved."); setProgressEntry(null); }} /> : null}
+    {outcomeEditor ? <OutcomeEditor data={data} outcome={outcomeEditor.outcome} initialActivityId={outcomeEditor.activity?._id} initialDate={outcomeEditor.activity ? activityDate(outcomeEditor.activity) : selectedDay} onClose={() => setOutcomeEditor(null)} onSave={async (input, activityId) => { await actions.saveOutcome(input, activityId, outcomeEditor.outcome); toast.success("Outcome saved as a self-reported result."); setOutcomeEditor(null); }} /> : null}
+    {removing ? <RemoveSprintDialog title={removing.outcome ? "Remove this outcome?" : removing.entry?.scope === "cohort" ? "Cancel this cohort activity?" : "Remove this activity?"} action={removing.outcome ? "Remove outcome" : removing.entry?.scope === "cohort" ? "Cancel cohort activity" : "Remove activity"} description={removing.outcome ? "This permanently removes the reported outcome. Attendance and mission progress stay as recorded." : removing.entry?.scope === "cohort" ? "The cohort will see this activity as cancelled. It stops contributing to goal progress and calendar exports. You can restore it later." : "This removes the activity and its goal contribution. Any reported outcomes are kept without the activity link."} onClose={() => setRemoving(null)} onRemove={async () => { if (removing.outcome) await actions.removeOutcome(removing.outcome); else if (removing.entry) await actions.removeActivity(removing.entry); setRemoving(null); setDetailId(null); toast.success("Sprint updated."); }} /> : null}
   </div></div>;
 }

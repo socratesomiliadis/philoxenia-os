@@ -8,6 +8,7 @@ import { Button, Modal, Tooltip } from "@heroui/react";
 import { BrandMark, BrandWordmark } from "./brand";
 import { authClient } from "@/lib/auth-client";
 import { useWorkspace } from "./workspace-context";
+import { useModalNotifications } from "./notification-context";
 
 const navigation = [
   { href: "/", label: "Home", icon: House },
@@ -55,6 +56,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  useModalNotifications(mobileOpen);
   const collapsed = useSyncExternalStore(subscribeSidebar, getSidebarCollapsed, () => false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);

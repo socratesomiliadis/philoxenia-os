@@ -8,14 +8,16 @@ import { eventTimeLabel, sfDateTimeInput, type Opportunity } from "@/lib/opportu
 import { initialOccurrence, parseSprintTime, sfTimeCandidates } from "@/lib/sprint-time";
 import { ActionButton, Field, InlineError, errorMessage } from "./ui";
 import { SelectField } from "./opportunity-parts";
+import { useModalNotifications } from "./notification-context";
 
 export function SprintModal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
+  useModalNotifications();
   const headingId = useId();
-  return <Modal isOpen onOpenChange={(open) => { if (!open) onClose(); }}><Modal.Backdrop><Modal.Container size={wide ? "full" : "lg"}><Modal.Dialog aria-labelledby={headingId} className="rounded-[24px] bg-white p-5 sm:p-7"><Modal.CloseTrigger aria-label="Close Sprint dialog" /><Modal.Header className="mb-5 pe-8"><Modal.Heading id={headingId} className="text-2xl font-medium tracking-tight wrap-anywhere text-foreground">{title}</Modal.Heading></Modal.Header><Modal.Body className="@container/sprint-dialog scrollbar-thin min-h-0 wrap-anywhere [&_.textfield]:gap-0 [&_label]:text-sm [&_label]:leading-5 [&_label]:text-foreground [--scrollbar-thumb:var(--foreground)] [--scrollbar-track:transparent]">{children}</Modal.Body></Modal.Dialog></Modal.Container></Modal.Backdrop></Modal>;
+  return <Modal isOpen onOpenChange={(open) => { if (!open) onClose(); }}><Modal.Backdrop><Modal.Container size={wide ? "full" : "lg"}><Modal.Dialog aria-label={title} className="rounded-[24px] bg-white p-5 sm:p-7"><Modal.CloseTrigger aria-label="Close Sprint dialog" /><Modal.Header className="mb-5 pe-8"><Modal.Heading id={headingId} className="text-2xl font-medium tracking-tight wrap-anywhere text-foreground">{title}</Modal.Heading></Modal.Header><Modal.Body className="@container/sprint-dialog scrollbar-thin min-h-0 wrap-anywhere [&_label]:text-sm [&_label]:leading-5 [&_label]:text-foreground [--scrollbar-thumb:var(--foreground)] [--scrollbar-track:transparent]">{children}</Modal.Body></Modal.Dialog></Modal.Container></Modal.Backdrop></Modal>;
 }
 
 function NotesField({ label = "Notes (optional)", value, onChange }: { label?: string; value: string; onChange: (value: string) => void }) {
-  return <TextField className="space-y-2"><Label className="text-sm font-medium text-foreground">{label}</Label><TextArea value={value} onChange={(event) => onChange(event.target.value)} maxLength={3000} rows={3} className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm leading-6" /></TextField>;
+  return <TextField className="gap-2"><Label className="text-sm font-medium text-foreground">{label}</Label><TextArea value={value} onChange={(event) => onChange(event.target.value)} maxLength={3000} rows={3} className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm leading-6" /></TextField>;
 }
 
 function GoalSelect({ data, value, onChange }: { data: SprintData; value: string; onChange: (value: string) => void }) {

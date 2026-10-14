@@ -184,7 +184,8 @@ test("organizers manage shared challenges and can inspect a participant’s Spri
   await expect(details).toHaveCount(0);
   await management.getByRole("button", { name: "Close Sprint dialog", exact: true }).click();
   await expect(management).toHaveCount(0);
-  await page.getByRole("button", { name: "View Sprint for Other Hustler", exact: true }).click();
+  await page.getByRole("button", { name: "Manage Other Hustler", exact: true }).click();
+  await page.getByRole("menuitem", { name: "View Sprint", exact: true }).click();
   const participant = page.getByRole("dialog", { name: "Other Hustler Sprint", exact: true });
   await expect(participant.getByRole("heading", { name: "Other Hustler’s Sprint", exact: true })).toBeVisible();
   await expect(participant.getByRole("button", { name: "Add activity", exact: true })).toHaveCount(0);

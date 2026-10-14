@@ -19,7 +19,7 @@ test("preview navigation works on desktop and mobile without granting backend ac
   await page.getByRole("link", { name: "Opportunities", exact: true }).focus();
   await expect(page.getByRole("tooltip", { name: "Opportunities", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Command Center", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Organizer Command Center" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Command Center" })).toBeVisible();
   await expect.poll(() => panel.evaluate((element) => element.scrollTop)).toBe(0);
   await expect(page.getByRole("button", { name: "New cohort", exact: true })).toBeDisabled();
   await page.reload();

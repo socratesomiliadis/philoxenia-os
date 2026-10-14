@@ -22,8 +22,8 @@ test("four onboarding steps lead to three editable goals and explicit replacemen
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Your ambitions", exact: true })).toHaveValue("Find three potential users and learn from their feedback.");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByRole("button", { name: "Developer tools", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Developer tools", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByText("Developer tools", { exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: "Developer tools", exact: true })).toBeChecked();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("textbox", { name: "Your contribution", exact: true }).fill("React prototypes and landing page reviews.");
   await page.getByRole("button", { name: "Continue", exact: true }).click();

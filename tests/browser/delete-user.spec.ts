@@ -32,6 +32,7 @@ test("organizer deletion requires the target email, supports cancel and retry, a
   });
   await page.goto("/organizer");
   await page.getByRole("button", { name: "Manage Test Hustler", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Manage access and dates", exact: true }).click();
   await page.getByRole("button", { name: "Delete user", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Delete Test Hustler?", exact: true });
   await expect(dialog).toBeVisible();
@@ -41,6 +42,7 @@ test("organizer deletion requires the target email, supports cancel and retry, a
   expect(deletions).toHaveLength(0);
 
   await page.getByRole("button", { name: "Manage Test Hustler", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Manage access and dates", exact: true }).click();
   await page.getByRole("button", { name: "Delete user", exact: true }).click();
   await page.setViewportSize({ width: 320, height: 900 });
   await dialog.getByRole("textbox", { name: "Type the email to confirm" }).fill("wrong@example.com");
@@ -53,6 +55,6 @@ test("organizer deletion requires the target email, supports cancel and retry, a
   await dialog.getByRole("button", { name: "Delete user permanently" }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "No participants yet" })).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("You can invite this email again to start fresh.");
+  await expect(page.getByText("You can invite this email again to start fresh.", { exact: false })).toBeVisible();
   expect(deletions).toEqual([{ profileId: profile._id, confirmationEmail: profile.email }, { profileId: profile._id, confirmationEmail: profile.email }]);
 });

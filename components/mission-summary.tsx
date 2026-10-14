@@ -5,7 +5,7 @@ import { Target } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { MissionGoal } from "@/lib/mission";
 import { useWorkspace, type Cohort } from "./workspace-context";
-import { Badge, IconTile, Panel, TextLink } from "./ui";
+import { Badge, Panel, TextLink } from "./ui";
 import { MissionGoals } from "./mission-goals";
 
 export function MissionSummary({ cohort }: { cohort?: Cohort }) {
@@ -25,12 +25,12 @@ function ConnectedSummary({ cohort }: { cohort: Cohort }) {
 }
 
 function Summary({ data, href = "/onboarding", loading, unavailable, organizer }: { data?: { confirmedGoals?: MissionGoal[] } | null; href?: string; loading?: boolean; unavailable?: boolean; organizer?: boolean }) {
-  return <Panel className="p-6 sm:p-7">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><IconTile icon={Target} tone="warm" /><h2 className="text-base font-medium text-foreground">Your personal mission</h2></div><Badge tone={data?.confirmedGoals ? "green" : "neutral"}>{data?.confirmedGoals ? "Confirmed" : data ? "In progress" : "Three goals"}</Badge></div>
+  return <Panel className="flex flex-col p-5 @min-[640px]:p-6">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2.5"><Target className="size-[18px] text-forest" aria-hidden /><h2 className="text-base font-medium text-foreground">{organizer && unavailable ? "Cohort missions" : "Your personal mission"}</h2></div><Badge tone={data?.confirmedGoals ? "green" : "neutral"}>{data?.confirmedGoals ? "Confirmed" : organizer && unavailable ? "Organizer view" : data ? "In progress" : "Three goals"}</Badge></div>
     {loading ? <p role="status" className="mt-6 text-sm text-muted">Loading your mission…</p> : data?.confirmedGoals ? <div className="mt-6"><MissionGoals goals={data.confirmedGoals} /><div className="mt-6"><TextLink href={href}>Review your mission</TextLink></div></div> : <>
-      <h3 className="mt-6 text-2xl font-medium tracking-tight text-foreground">Big ambitions. Clear next steps.</h3>
-      <p className="mt-3 max-w-md text-sm leading-7 text-muted">{unavailable ? organizer ? "Review a Hustler’s onboarding answers and confirmed mission from their cohort roster." : "Ask your organizer to assign a cohort and confirm your stay dates. Then you can set three goals for your two weeks." : "Share what you’re building and what you want from your stay. Turn that into three concrete goals, with first steps you can take."}</p>
-      {!unavailable ? <div className="mt-6"><TextLink href={href}>{data ? "Continue your mission" : "Set your personal mission"}</TextLink></div> : organizer ? <div className="mt-6"><TextLink href="/organizer">Open the Command Center</TextLink></div> : null}
+      <h3 className="mt-5 text-2xl leading-8 font-medium tracking-tight text-foreground">{organizer && unavailable ? "Help each Hustler find a direction." : "Give your Sprint a direction."}</h3>
+      <p className="mt-2 max-w-md text-sm leading-6 text-muted">{unavailable ? organizer ? "Open a participant’s mission from the cohort roster to see their goals and what they’re working toward." : "Your organizer needs to confirm your cohort and stay dates before you can set a mission." : "Share what you’re building and what you hope to learn. Choose three goals to guide your two weeks."}</p>
+      {!unavailable ? <div className="mt-auto pt-5"><TextLink href={href}>{data ? "Continue your mission" : "Set your personal mission"}</TextLink></div> : organizer ? <div className="mt-auto pt-5"><TextLink href="/organizer">Review cohort missions</TextLink></div> : null}
     </>}
   </Panel>;
 }
