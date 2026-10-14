@@ -1,0 +1,71 @@
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { ShieldX } from "lucide-react";
+import { api } from "@/convex/_generated/api";
+import { authClient } from "@/lib/auth-client";
+import { backendConfigured } from "./providers";
+import { SignInScreen } from "./sign-in";
+import { ActionButton, InlineError, LoadingState, errorMessage } from "./ui";
+import { WorkspaceContext, previewCohort, type Viewer } from "./workspace-context";
+import { WorkspaceShell } from "./workspace-shell";
+
+export function PreviewWorkspace({ children }: { children: ReactNode }) {
+  return <WorkspaceContext.Provider value={{ preview: true, viewer: null, cohorts: [previewCohort] }}><WorkspaceShell>{children}</WorkspaceShell></WorkspaceContext.Provider>;
+}
+
+export function WorkspaceGateway({ children }: { children: ReactNode }) {
+  if (!backendConfigured) return process.env.NODE_ENV === "development" ? <PreviewWorkspace>{children}</PreviewWorkspace> : <SignInScreen />;
+  return <ConnectedGateway>{children}</ConnectedGateway>;
+}
+
+function ConnectedGateway({ children }: { children: ReactNode }) {
+  const readiness = useQuery(api.auth.readiness);
+  if (readiness === undefined) return <LoadingState />;
+  if (!readiness.google) return process.env.NODE_ENV === "development" ? <PreviewWorkspace>{children}</PreviewWorkspace> : <SignInScreen />;
+  return <AuthenticatedGateway>{children}</AuthenticatedGateway>;
+}
+
+function AuthenticatedGateway({ children }: { children: ReactNode }) {
+  const { isAuthenticated, isLoading } = useConvexAuth();
+  const viewer = useQuery(api.users.viewer, isAuthenticated ? {} : "skip");
+  const ensureProfile = useMutation(api.users.ensureProfile);
+  const [provisionError, setProvisionError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
+  const needsProvisioning = Boolean(viewer?.allowed && viewer.needsProvisioning);
+
+  useEffect(() => {
+    if (!needsProvisioning) return;
+    let cancelled = false;
+    ensureProfile({}).catch((error) => { if (!cancelled) setProvisionError(errorMessage(error)); });
+    return () => { cancelled = true; };
+  }, [needsProvisioning, ensureProfile, retry]);
+
+  if (isLoading || (isAuthenticated && viewer === undefined)) return <LoadingState />;
+  if (!isAuthenticated || !viewer) return <SignInScreen />;
+  if (!viewer.allowed) return <AccessDenied email={viewer.email} />;
+  if (needsProvisioning) return provisionError ? <div className="mx-auto max-w-md space-y-4 p-10"><InlineError message={provisionError} /><ActionButton onPress={() => { setProvisionError(null); setRetry((count) => count + 1); }}>Try again</ActionButton></div> : <LoadingState label="Joining your cohort…" />;
+  return <MemberWorkspace viewer={viewer}>{children}</MemberWorkspace>;
+}
+
+function MemberWorkspace({ viewer, children }: { viewer: Viewer; children: ReactNode }) {
+  const cohorts = useQuery(api.cohorts.list);
+  if (!cohorts) return <LoadingState label="Loading your cohort…" />;
+  return <WorkspaceContext.Provider value={{ preview: false, viewer, cohorts }}><WorkspaceShell>{children}</WorkspaceShell></WorkspaceContext.Provider>;
+}
+
+function AccessDenied({ email }: { email: string }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  async function switchAccount() {
+    try {
+      const result = await authClient.signOut();
+      if (result.error) throw new Error(result.error.message);
+      router.replace("/sign-in");
+      router.refresh();
+    } catch { setError("Could not switch accounts. Please try again."); }
+  }
+  return <main className="flex min-h-screen items-center justify-center bg-canvas p-6"><section className="w-full max-w-lg rounded-3xl border border-line bg-white p-9"><ShieldX className="mb-6 size-8 text-gold" aria-hidden /><h1 className="font-display text-4xl text-forest">A door for your community.</h1><p className="mt-4 text-sm leading-7 text-muted">{email} doesn’t have an active invitation. Sign in with your invited Google account or ask your organizer to check your access.</p><div className="mt-6"><ActionButton onPress={switchAccount}>Use another account</ActionButton></div><div className="mt-4"><InlineError message={error} /></div></section></main>;
+}
