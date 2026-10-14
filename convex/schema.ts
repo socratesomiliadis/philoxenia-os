@@ -2,8 +2,24 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { answersValidator, fallbackValidator, goalValidator, sourceValidator } from "./missionValidators";
 import { opportunityFields } from "./opportunityValidators";
+import { activityFields, progressFields, outcomeFields } from "./sprintValidators";
 
 export default defineSchema({
+  sprintActivities: defineTable({
+    ...activityFields, cohortId: v.id("cohorts"), ownerId: v.optional(v.id("profiles")),
+    scope: v.union(v.literal("personal"), v.literal("cohort")), createdBy: v.id("profiles"),
+    revision: v.number(), updatedAt: v.number(), cancelledAt: v.optional(v.number()),
+    opportunityId: v.optional(v.id("opportunities")), sourceUrl: v.optional(v.string()), sourceUpdatedAt: v.optional(v.number()),
+  }).index("by_cohort_scope", ["cohortId", "scope"]).index("by_owner_cohort", ["ownerId", "cohortId"])
+    .index("by_owner_cohort_opportunity", ["ownerId", "cohortId", "opportunityId"]),
+  sprintProgress: defineTable({
+    ...progressFields, profileId: v.id("profiles"), cohortId: v.id("cohorts"), activityId: v.id("sprintActivities"),
+    revision: v.number(), updatedAt: v.number(), activityRevision: v.number(), completedAt: v.optional(v.number()),
+  }).index("by_profile_cohort", ["profileId", "cohortId"]).index("by_profile_activity", ["profileId", "activityId"])
+    .index("by_activity", ["activityId"]),
+  sprintOutcomes: defineTable({
+    ...outcomeFields, profileId: v.id("profiles"), cohortId: v.id("cohorts"), activityId: v.optional(v.id("sprintActivities")), updatedAt: v.number(),
+  }).index("by_profile_cohort", ["profileId", "cohortId"]).index("by_activity", ["activityId"]),
   opportunities: defineTable({
     ...opportunityFields,
     createdBy: v.id("profiles"), updatedAt: v.number(), supportConfirmedAt: v.optional(v.number()),

@@ -18,6 +18,8 @@ import type * as missions from "../missions.js";
 import type * as onboarding from "../onboarding.js";
 import type * as opportunities from "../opportunities.js";
 import type * as opportunityValidators from "../opportunityValidators.js";
+import type * as sprint from "../sprint.js";
+import type * as sprintValidators from "../sprintValidators.js";
 import type * as users from "../users.js";
 
 import type {
@@ -37,6 +39,8 @@ declare const fullApi: ApiFromModules<{
   onboarding: typeof onboarding;
   opportunities: typeof opportunities;
   opportunityValidators: typeof opportunityValidators;
+  sprint: typeof sprint;
+  sprintValidators: typeof sprintValidators;
   users: typeof users;
 }>;
 

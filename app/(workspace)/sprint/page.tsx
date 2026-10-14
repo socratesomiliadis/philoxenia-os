@@ -1,3 +1,3 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { SprintDashboard } from "@/components/sprint-dashboard";
 export const instant = false;
-export default function SprintPage() { return <ComingSoon feature="sprint" />; }
+export default function SprintPage() { return <SprintDashboard />; }

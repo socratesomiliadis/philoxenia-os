@@ -13,6 +13,8 @@ import { ActionButton, InlineError, LoadingState, PageHeading, Panel, errorMessa
 import { OpportunityCard, OpportunityDetails, SelectField } from "./opportunity-parts";
 import { dateRangeLabel } from "@/lib/cohort-dates";
 
+import { OpportunitySprintEditor } from "./opportunity-sprint-editor";
+
 export function OpportunitiesDashboard() {
   const { preview } = useWorkspace();
   return preview ? <PreviewOpportunities /> : <ConnectedOpportunities />;
@@ -44,6 +46,7 @@ function OpportunitiesView({ entries, context, cohorts, cohort, onSelectCohort, 
   const [datePreset, setDatePreset] = useState("any");
   const [sort, setSort] = useState("recommended");
   const [selected, setSelected] = useState<string | null>(null);
+  const [adding, setAdding] = useState<Opportunity | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -85,6 +88,7 @@ function OpportunitiesView({ entries, context, cohorts, cohort, onSelectCohort, 
     {invalidRange && eventFilters ? <InlineError message="Choose an end date on or after the start date." /> : null}
     <div className="flex flex-wrap items-center justify-between gap-4"><p role="status" className="text-sm text-muted">{visible.length} {visible.length === 1 ? "opportunity" : "opportunities"}{filters.savedOnly ? " saved" : " to explore"} · {filters.area === "sf" ? "San Francisco" : filters.area === "bay-area" ? "Wider Bay Area" : filters.area === "online" ? "Online" : "All locations"}</p><div className="w-full sm:w-52"><SelectField label="Sort opportunities" value={sort} onChange={(event) => setSort(event.target.value)}><option value="recommended">Recommended</option><option value="soonest">Events soonest</option><option value="newest">Recently updated</option></SelectField></div></div>
     {visible.length && !(invalidRange && eventFilters) ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{visible.map((entry) => <OpportunityCard key={entry._id} entry={entry} context={context} busy={busy} onBookmark={bookmark} onOpen={() => { setError(null); setNotice(""); setSelected(entry._id); }} />)}</div> : <Panel className="flex flex-col items-start gap-4 p-7 sm:p-10"><Compass className="size-7 text-forest" aria-hidden /><h2 className="text-xl font-medium tracking-tight text-foreground">{entries.length === 0 ? "No published opportunities yet" : filters.savedOnly ? "No saved opportunities here yet" : "No opportunities match these filters"}</h2><p className="max-w-lg text-sm leading-6 text-muted">{entries.length === 0 ? "Your organizers are putting the first listings together. Published events, startups, founders, and alumni offers will appear here." : filters.savedOnly ? "Save a listing with the bookmark button, or reset filters to see opportunities in other locations." : "Try a broader search, another interest, or the wider Bay Area."}</p>{entries.length ? <ActionButton appearance="secondary" onPress={reset}>Reset filters</ActionButton> : viewer?.isOrganizer ? <Link href="/organizer#opportunities" className="text-sm font-medium text-forest underline underline-offset-4">Publish your first opportunity</Link> : null}</Panel>}
-    {selected ? <OpportunityDetails entry={entries.find((entry) => entry._id === selected)} context={context} busy={busy} error={error} notice={notice} onBookmark={bookmark} onClose={() => setSelected(null)} /> : null}
+    {selected ? <OpportunityDetails entry={entries.find((entry) => entry._id === selected)} context={context} busy={busy} error={error} notice={notice} onBookmark={bookmark} onClose={() => setSelected(null)} onAddToSprint={cohort && (preview || viewer?.participantCohortIds.includes(cohort._id)) ? () => { const entry = entries.find((item) => item._id === selected); if (entry) { setAdding(entry); setNotice("Opening your Sprint…"); } } : undefined} /> : null}
+    {adding && cohort ? <OpportunitySprintEditor opportunity={adding} cohortId={cohort._id} onClose={() => { setAdding(null); setNotice(""); }} onAdded={() => { setAdding(null); setNotice("Added to your Sprint. Open the Sprint to review your schedule."); }} /> : null}
   </div>;
 }

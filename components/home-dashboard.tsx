@@ -38,7 +38,7 @@ export function HomeDashboard() {
           <p className="text-sm text-muted">{cohort.name}</p>
           <p className="mt-2 text-2xl font-medium tracking-tight text-foreground">{dateRangeLabel(cohort.startDate, cohort.endDate)}</p>
           <p className="mt-3 flex items-center gap-1.5 text-xs leading-5 text-muted"><MapPin className="size-3.5 shrink-0" aria-hidden />San Francisco · Pacific Time</p>
-          <div className="mt-6 grid grid-cols-14 gap-1" aria-label="Fourteen days in your Sprint">{Array.from({ length: 14 }, (_, i) => <div key={i} className="flex h-9 items-center justify-center rounded-md bg-soft text-[10px] tabular-nums text-muted">{i + 1}</div>)}</div>
+          <Link href={preview ? "/preview/sprint" : "/sprint"} className="mt-6 grid grid-cols-14 gap-1 rounded-md" aria-label="Open your 14-day Sprint">{Array.from({ length: 14 }, (_, i) => <div key={i} className="flex h-9 items-center justify-center rounded-md bg-soft text-[10px] tabular-nums text-muted">{i + 1}</div>)}</Link>
         </div> : <div className="mt-6"><h3 className="text-xl font-medium tracking-tight text-foreground">Your stay is taking shape.</h3><p className="mt-3 text-sm leading-6 text-muted">{viewer?.isOrganizer ? "Create a cohort in the Command Center to bring your Hustlers together." : "Your organizer will assign your cohort and confirm your stay dates."}</p></div>}
         <div className="mt-6"><TextLink href={preview ? "/preview/organizer" : viewer?.isOrganizer ? "/organizer" : "/sprint"}>{viewer?.isOrganizer || preview ? "View cohort details" : "Explore your Sprint"}</TextLink></div>
       </Panel>

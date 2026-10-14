@@ -6,6 +6,7 @@ import { CommunityPage } from "@/components/community";
 import { ComingSoon } from "@/components/coming-soon";
 import { LoadingState } from "@/components/ui";
 import { OpportunitiesDashboard } from "@/components/opportunities-dashboard";
+import { SprintDashboard } from "@/components/sprint-dashboard";
 
 export default function PreviewSectionPage({ params }: { params: Promise<{ section: string }> }) {
   if (process.env.NODE_ENV !== "development") notFound();
@@ -16,7 +17,7 @@ async function PreviewSection({ params }: { params: Promise<{ section: string }>
   const { section } = await params;
   const content = {
     organizer: <OrganizerDashboard />, community: <CommunityPage />,
-    opportunities: <OpportunitiesDashboard />, sprint: <ComingSoon feature="sprint" />,
+    opportunities: <OpportunitiesDashboard />, sprint: <SprintDashboard />,
     "open-doors": <ComingSoon feature="doors" />,
   }[section];
   if (!content) notFound();

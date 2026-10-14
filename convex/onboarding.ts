@@ -86,7 +86,7 @@ export const saveProposal = mutation({
     const goals = goalsForStay(args.goals, stay.startDate, stay.endDate);
     const revision = doc.revision + 1;
     await ctx.db.patch(doc._id, { proposal: goals, revision, step: 4, generationId: undefined, updatedAt: Date.now(),
-      ...(args.confirm ? { confirmedGoals: goals, confirmedAt: Date.now() } : {}) });
+      ...(args.confirm ? { confirmedGoals: goals, confirmedAt: Math.max(Date.now(), (doc.confirmedAt ?? 0) + 1) } : {}) });
     return revision;
   },
 });
