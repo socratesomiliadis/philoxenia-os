@@ -1,7 +1,18 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { answersValidator, fallbackValidator, goalValidator, sourceValidator } from "./missionValidators";
 
 export default defineSchema({
+  onboarding: defineTable({
+    profileId: v.id("profiles"), cohortId: v.id("cohorts"),
+    answers: answersValidator, step: v.number(), revision: v.number(), updatedAt: v.number(),
+    proposal: v.optional(v.array(goalValidator)), source: v.optional(sourceValidator),
+    fallbackReason: v.optional(fallbackValidator), generationId: v.optional(v.string()),
+    confirmedGoals: v.optional(v.array(goalValidator)), confirmedAt: v.optional(v.number()),
+  }).index("by_profile_cohort", ["profileId", "cohortId"]),
+  missionGenerationLimits: defineTable({
+    profileId: v.id("profiles"), windowStart: v.number(), count: v.number(), lastAttempt: v.number(),
+  }).index("by_profile", ["profileId"]),
   profiles: defineTable({
     authUserId: v.string(),
     email: v.string(),

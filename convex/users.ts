@@ -14,7 +14,7 @@ export const viewer = query({
     const isOrganizer = isOrganizerEmail(user.email);
     const allowed = user.emailVerified && !profile?.suspended && (isOrganizer || profile?.isAlumni ||
       memberships.some((m) => m.status === "active") || invitations.some((i) => i.status === "pending"));
-    return { name: user.name, email: user.email, image: user.image, profile, isOrganizer, allowed: Boolean(allowed), needsProvisioning: !profile || invitations.some((i) => i.status === "pending") };
+    return { name: user.name, email: user.email, image: user.image, profile, isOrganizer, participantCohortIds: memberships.filter((m) => m.status === "active").map((m) => m.cohortId), allowed: Boolean(allowed), needsProvisioning: !profile || invitations.some((i) => i.status === "pending") };
   },
 });
 

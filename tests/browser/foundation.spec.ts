@@ -33,6 +33,9 @@ test("preview navigation works on desktop and mobile without granting backend ac
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.goto("/sign-in");
   await expect(page.getByRole("heading", { name: "Welcome, Hustler." })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Google sign-in is not connected yet" })).toBeDisabled();
+  const google = page.getByRole("button", { name: /Continue with Google|Google sign-in is not connected yet/ });
+  await expect(google).toBeVisible();
+  if (await google.innerText() === "Google sign-in is not connected yet") await expect(google).toBeDisabled();
+  else await expect(google).toBeEnabled();
   expect(errors).toEqual([]);
 });

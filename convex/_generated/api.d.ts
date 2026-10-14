@@ -13,6 +13,9 @@ import type * as auth from "../auth.js";
 import type * as cohorts from "../cohorts.js";
 import type * as http from "../http.js";
 import type * as invitations from "../invitations.js";
+import type * as missionValidators from "../missionValidators.js";
+import type * as missions from "../missions.js";
+import type * as onboarding from "../onboarding.js";
 import type * as users from "../users.js";
 
 import type {
@@ -27,6 +30,9 @@ declare const fullApi: ApiFromModules<{
   cohorts: typeof cohorts;
   http: typeof http;
   invitations: typeof invitations;
+  missionValidators: typeof missionValidators;
+  missions: typeof missions;
+  onboarding: typeof onboarding;
   users: typeof users;
 }>;
 

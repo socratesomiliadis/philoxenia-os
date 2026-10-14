@@ -13,10 +13,14 @@
     "dev:backend": "convex dev"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.95",
+    "@ai-sdk/groq": "^4.0.60",
     "@convex-dev/better-auth": "^0.12.5",
     "@date-fns/tz": "^1.5.0",
     "@heroui/react": "^3.2.6",
     "@heroui/styles": "^3.2.6",
+    "@hookform/resolvers": "^5.9.1",
+    "ai": "^7.0.140",
     "better-auth": "1.6.15",
     "convex": "^1.46.0",
     "date-fns": "^4.4.0",
@@ -24,6 +28,7 @@
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "react-hook-form": "^7.90.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
