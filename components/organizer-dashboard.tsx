@@ -4,7 +4,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Button, Modal, TextArea, TextField, Label } from "@heroui/react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { CalendarDays, Check, Copy, Edit3, Mail, Plus, Search, Settings2, ShieldCheck, UsersRound, X } from "lucide-react";
+import { CalendarDays, Check, Copy, Edit3, Mail, Plus, Search, Settings2, ShieldCheck, Trash2, UsersRound, X } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useWorkspace, type Cohort } from "./workspace-context";
@@ -38,6 +38,7 @@ function ConnectedOrganizer() {
   const invite = useMutation(api.invitations.invite);
   const revoke = useMutation(api.invitations.revoke);
   const updateMembership = useMutation(api.cohorts.updateMembership);
+  const deleteUser = useMutation(api.users.deleteUser);
 
   if (!overview || (selected && !roster)) return <LoadingState label="Opening the Command Center…" />;
   return <OrganizerView cohorts={cohorts} selected={selected} roster={roster ?? { participants: [], invitations: [] }} overview={overview}
@@ -46,6 +47,7 @@ function ConnectedOrganizer() {
     onUpdate={async (input) => { if (selected) await update({ cohortId: selected._id, ...input }); }}
     onInvite={async (email, name) => { if (selected) await invite({ cohortId: selected._id, email, name }); }}
     onRevokeInvite={async (invitationId) => { await revoke({ invitationId }); }}
+    onDeleteUser={async (profileId, confirmationEmail) => { await deleteUser({ profileId, confirmationEmail }); }}
     onMembership={async (membershipId, status, startDateOverride, suspended) => { await updateMembership({ membershipId, status, startDateOverride, suspended }); }} />;
 }
 
@@ -60,13 +62,15 @@ type OrganizerViewProps = {
   onUpdate?: (input: CohortInput) => Promise<void>;
   onInvite?: (email: string, name: string) => Promise<void>;
   onRevokeInvite?: (id: Id<"invitations">) => Promise<void>;
+  onDeleteUser?: (profileId: Id<"profiles">, confirmationEmail: string) => Promise<void>;
   onMembership?: (id: Id<"memberships">, status: "active" | "revoked", startDateOverride: string | undefined, suspended: boolean) => Promise<void>;
 };
 
-function OrganizerView({ preview = false, cohorts, selected, roster, overview, onSelect, onCreate, onUpdate, onInvite, onRevokeInvite, onMembership }: OrganizerViewProps) {
+function OrganizerView({ preview = false, cohorts, selected, roster, overview, onSelect, onCreate, onUpdate, onInvite, onRevokeInvite, onMembership, onDeleteUser }: OrganizerViewProps) {
   const [editor, setEditor] = useState<"create" | "edit" | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [managing, setManaging] = useState<Roster["participants"][number] | null>(null);
+  const [deleting, setDeleting] = useState<Roster["participants"][number] | null>(null);
   const [search, setSearch] = useState("");
   const [missionParticipant, setMissionParticipant] = useState<Roster["participants"][number] | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
@@ -101,15 +105,21 @@ function OrganizerView({ preview = false, cohorts, selected, roster, overview, o
         </Panel></> : <Panel className="flex min-h-96 flex-col items-center justify-center px-8 py-12 text-center"><CalendarDays className="mb-5 size-8 text-gold" strokeWidth={1.5} aria-hidden /><h2 className="text-3xl font-medium tracking-tight text-foreground">Create your first cohort</h2><p className="mt-4 max-w-sm text-sm leading-7 text-muted">Give your cohort a name and an arrival date. We’ll set up its 14-day stay in San Francisco.</p><ActionButton className="mt-7" onPress={() => setEditor("create")}><Plus className="size-4" aria-hidden />Create your first cohort</ActionButton></Panel>}</div>
     </div>
     <div className="flex items-center gap-3 rounded-2xl bg-sage/50 p-5"><ShieldCheck className="size-5 shrink-0 text-forest" aria-hidden /><p className="text-sm leading-6 text-muted">Only approved members can enter the workspace. Cohort access, invitations, and participant details are managed here.</p></div>
+    {deleting?.profile && onDeleteUser ? <DeleteUserDialog name={deleting.profile.name} email={deleting.profile.email} onClose={() => setDeleting(null)} onDelete={async (confirmationEmail) => {
+      await onDeleteUser(deleting.profile!._id, confirmationEmail);
+      setNotice({ message: `${deleting.profile!.email} deleted from all cohorts. You can invite this email again to start fresh.` });
+      if (missionParticipant?.profileId === deleting.profileId) setMissionParticipant(null);
+      setDeleting(null);
+    }} /> : null}
     {missionParticipant?.profile && selected ? <EditorModal title={`${missionParticipant.profile.name} mission`} onClose={() => setMissionParticipant(null)}><OrganizerMission cohortId={selected._id} profileId={missionParticipant.profile._id} /></EditorModal> : null}
     {editor ? <CohortEditor key={editor === "create" ? "new" : selected?._id} cohort={editor === "edit" ? selected : undefined} onClose={() => setEditor(null)} onSave={async (input) => { if (editor === "create") await onCreate?.(input); else await onUpdate?.(input); setNotice({ message: editor === "create" ? "Your cohort is ready. Invite your first Hustler." : "Cohort updated. Participants without date overrides follow these dates." }); setEditor(null); }} /> : null}
     {inviteOpen && selected ? <InviteEditor cohortName={selected.name} onClose={() => setInviteOpen(false)} onSave={async (email, name) => { await onInvite?.(email, name); setNotice({ message: "Invitation saved. Share the sign-in link with this Hustler; automatic invitation emails will be added with Open Doors." }); setInviteOpen(false); }} /> : null}
-    {managing && selected ? <MembershipEditor participant={managing} cohort={selected} canSuspend={managing.profile?.email !== viewer?.email} onClose={() => setManaging(null)} onSave={async (status, startDateOverride, suspended) => { await onMembership?.(managing._id, status, startDateOverride, suspended); setNotice({ message: "Participant access and stay dates updated." }); setManaging(null); }} /> : null}
+    {managing && selected ? <MembershipEditor participant={managing} cohort={selected} canSuspend={!managing.isOrganizer && managing.profile?.email !== viewer?.email} onDelete={!preview && !managing.isOrganizer && managing.profile && managing.profile.email !== viewer?.email ? () => { setManaging(null); setDeleting(managing); } : undefined} onClose={() => setManaging(null)} onSave={async (status, startDateOverride, suspended) => { await onMembership?.(managing._id, status, startDateOverride, suspended); setNotice({ message: "Participant access and stay dates updated." }); setManaging(null); }} /> : null}
   </div>;
 }
 
 function EditorModal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
-  return <Modal isOpen onOpenChange={(open) => { if (!open) onClose(); }}><Modal.Backdrop><Modal.Container size="lg"><Modal.Dialog className="rounded-2xl bg-white p-7"><Modal.CloseTrigger /><Modal.Header className="mb-6"><Modal.Heading className="text-2xl font-medium tracking-tight text-foreground">{title}</Modal.Heading></Modal.Header>{children}</Modal.Dialog></Modal.Container></Modal.Backdrop></Modal>;
+  return <Modal isOpen onOpenChange={(open) => { if (!open) onClose(); }}><Modal.Backdrop><Modal.Container size="lg"><Modal.Dialog className="rounded-2xl bg-white p-7"><Modal.CloseTrigger /><Modal.Header className="mb-6"><Modal.Heading className="text-2xl font-medium tracking-tight text-foreground">{title}</Modal.Heading></Modal.Header><Modal.Body className="scrollbar-thin min-h-0 [--scrollbar-thumb:var(--foreground)] [--scrollbar-track:transparent]">{children}</Modal.Body></Modal.Dialog></Modal.Container></Modal.Backdrop></Modal>;
 }
 
 function CohortEditor({ cohort, onClose, onSave }: { cohort?: Cohort; onClose: () => void; onSave: (input: CohortInput) => Promise<void> }) {
@@ -140,7 +150,7 @@ function InviteEditor({ cohortName, onClose, onSave }: { cohortName: string; onC
   return <EditorModal title="Invite a Hustler" onClose={onClose}><form onSubmit={submit} className="space-y-5"><p className="text-sm leading-6 text-muted">Invite them to {cohortName}. They must sign in with the Google email you enter here.</p><Field label="Name (optional)" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} autoComplete="name" /><Field label="Google account email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /><InlineError message={error} /><div className="flex justify-end gap-2"><Button variant="secondary" onPress={onClose} isDisabled={busy} className="rounded-xl">Cancel</Button><ActionButton type="submit" busy={busy}><Mail className="size-4" aria-hidden />Save invitation</ActionButton></div></form></EditorModal>;
 }
 
-function MembershipEditor({ participant, cohort, canSuspend, onClose, onSave }: { participant: Roster["participants"][number]; cohort: Cohort; canSuspend: boolean; onClose: () => void; onSave: (status: "active" | "revoked", override: string | undefined, suspended: boolean) => Promise<void> }) {
+function MembershipEditor({ participant, cohort, canSuspend, onClose, onSave, onDelete }: { participant: Roster["participants"][number]; cohort: Cohort; canSuspend: boolean; onDelete?: () => void; onClose: () => void; onSave: (status: "active" | "revoked", override: string | undefined, suspended: boolean) => Promise<void> }) {
   const [status, setStatus] = useState(participant.status);
   const [override, setOverride] = useState(participant.startDateOverride ?? "");
   const [suspended, setSuspended] = useState(participant.profile?.suspended ?? false);
@@ -150,5 +160,17 @@ function MembershipEditor({ participant, cohort, canSuspend, onClose, onSave }: 
     try { await onSave(status, override || undefined, suspended); }
     catch (error) { setError(errorMessage(error)); setBusy(false); }
   }
-  return <EditorModal title="Participant access & dates" onClose={onClose}><form onSubmit={submit} className="space-y-5"><p className="text-xs text-muted">{participant.profile?.name} · {participant.profile?.email}</p><label className="block space-y-2 text-sm font-medium text-forest"><span>Cohort access</span><select value={status} onChange={(e) => setStatus(e.target.value as "active" | "revoked")} className="h-11 w-full rounded-xl border border-line bg-white px-3"><option value="active">Active</option><option value="revoked">Revoked</option></select></label><Field label="Individual arrival date (optional)" type="date" value={override} onChange={(e) => setOverride(e.target.value)} /><p className="text-sm leading-6 text-muted">Leave blank to follow the cohort: {dateRangeLabel(cohort.startDate, cohort.endDate)}. An override always creates a 14-day stay.</p>{canSuspend ? <label className="flex items-start gap-3 rounded-xl border border-line bg-canvas p-4"><input type="checkbox" checked={suspended} onChange={(e) => setSuspended(e.target.checked)} className="mt-1 accent-forest" /><span><span className="block text-sm font-medium text-foreground">Suspend all workspace access</span><span className="mt-1 block text-xs leading-5 text-muted">Blocks this account across every cohort until restored.</span></span></label> : null}<InlineError message={error} /><div className="flex justify-end gap-2"><Button variant="secondary" onPress={onClose} isDisabled={busy} className="rounded-xl">Cancel</Button><ActionButton type="submit" busy={busy}><Check className="size-4" aria-hidden />Save changes</ActionButton></div></form></EditorModal>;
+  return <EditorModal title="Participant access & dates" onClose={onClose}><form onSubmit={submit} className="space-y-5"><p className="text-xs text-muted">{participant.profile?.name} · {participant.profile?.email}</p><label className="block space-y-2 text-sm font-medium text-forest"><span>Cohort access</span><select value={status} onChange={(e) => setStatus(e.target.value as "active" | "revoked")} className="h-11 w-full rounded-xl border border-line bg-white px-3"><option value="active">Active</option><option value="revoked">Revoked</option></select></label><Field label="Individual arrival date (optional)" type="date" value={override} onChange={(e) => setOverride(e.target.value)} /><p className="text-sm leading-6 text-muted">Leave blank to follow the cohort: {dateRangeLabel(cohort.startDate, cohort.endDate)}. An override always creates a 14-day stay.</p>{canSuspend ? <label className="flex items-start gap-3 rounded-xl border border-line bg-canvas p-4"><input type="checkbox" checked={suspended} onChange={(e) => setSuspended(e.target.checked)} className="mt-1 accent-forest" /><span><span className="block text-sm font-medium text-foreground">Suspend all workspace access</span><span className="mt-1 block text-xs leading-5 text-muted">Blocks this account across every cohort until restored.</span></span></label> : null}<InlineError message={error} /><div className="flex justify-end gap-2"><Button variant="secondary" onPress={onClose} isDisabled={busy} className="rounded-xl">Cancel</Button><ActionButton type="submit" busy={busy}><Check className="size-4" aria-hidden />Save changes</ActionButton></div></form>{onDelete ? <div className="mt-6 border-t border-line pt-5"><h3 className="text-sm font-medium">Delete user</h3><p className="mt-2 text-xs leading-6 text-muted">Permanently remove this account, all cohort memberships, and mission data. You can invite the email again afterward.</p><Button variant="ghost" isDisabled={busy} onPress={onDelete} className="mt-3 min-h-11 px-2 text-sm text-red-700"><Trash2 className="size-4" aria-hidden />Delete user</Button></div> : null}</EditorModal>;
+}
+
+function DeleteUserDialog({ name, email, onClose, onDelete }: { name: string; email: string; onClose: () => void; onDelete: (confirmationEmail: string) => Promise<void> }) {
+  const [confirmationEmail, setConfirmationEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function submit(event: FormEvent) {
+    event.preventDefault(); setBusy(true); setError(null);
+    try { await onDelete(confirmationEmail); }
+    catch (failure) { setError(errorMessage(failure)); setBusy(false); }
+  }
+  return <EditorModal title={`Delete ${name || email}?`} onClose={() => { if (!busy) onClose(); }}><form onSubmit={submit} className="space-y-5"><p className="text-sm leading-7 wrap-anywhere text-muted">Permanently delete <strong className="font-medium text-foreground">{email}</strong> from Philoxenia OS. This removes their sign-in account, active sessions, invitations, memberships across all cohorts, onboarding answers, and missions. This cannot be undone.</p><p className="text-sm leading-6 text-muted">You can invite this email again. Their next sign-in will start fresh with onboarding.</p><Field label="Type the email to confirm" type="email" autoComplete="off" autoFocus value={confirmationEmail} onChange={(event) => setConfirmationEmail(event.target.value)} required /><InlineError message={error} /><div className="flex flex-wrap justify-end gap-3"><ActionButton appearance="secondary" onPress={onClose} isDisabled={busy}>Cancel</ActionButton><ActionButton type="submit" appearance="danger" busy={busy} isDisabled={confirmationEmail.trim().toLowerCase() !== email.toLowerCase()}><Trash2 className="size-4" aria-hidden />Delete user permanently</ActionButton></div></form></EditorModal>;
 }

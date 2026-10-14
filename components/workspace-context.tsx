@@ -3,10 +3,11 @@
 import { createContext, useContext } from "react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 export type Viewer = NonNullable<FunctionReturnType<typeof api.users.viewer>>;
 export type Cohort = FunctionReturnType<typeof api.cohorts.list>[number];
-export type Workspace = { preview: boolean; viewer: Viewer | null; cohorts: Cohort[] };
+export type Workspace = { preview: boolean; viewer: Viewer | null; cohorts: Cohort[]; requiredOnboardingCohortId?: Id<"cohorts"> | null };
 
 export const WorkspaceContext = createContext<Workspace | null>(null);
 

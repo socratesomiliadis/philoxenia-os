@@ -1,5 +1,7 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
+import type { FunctionArgs } from "convex/server";
+import { components } from "./_generated/api";
 import { authComponent } from "./auth";
 import { isOrganizerEmail, requireMember, requireOrganizer } from "./access";
 
@@ -66,5 +68,55 @@ export const setSuspended = mutation({
     if (!profile) throw new ConvexError("Participant not found.");
     if (isOrganizerEmail(profile.email)) throw new ConvexError("Manage organizer access through backend configuration.");
     await ctx.db.patch(profile._id, { suspended: args.suspended });
+  },
+});
+
+async function deleteAuthRows(ctx: MutationCtx, input: FunctionArgs<typeof components.betterAuth.adapter.deleteMany>["input"]) {
+  let cursor: string | null = null;
+  do {
+    const result: { isDone: boolean; continueCursor: string } = await ctx.runMutation(components.betterAuth.adapter.deleteMany, {
+      input, paginationOpts: { cursor, numItems: 100 },
+    });
+    if (result.isDone) return;
+    cursor = result.continueCursor;
+  } while (cursor !== null);
+}
+
+export const deleteUser = mutation({
+  args: { profileId: v.id("profiles"), confirmationEmail: v.string() },
+  handler: async (ctx, args) => {
+    const { profile: organizer } = await requireOrganizer(ctx);
+    const profile = await ctx.db.get(args.profileId);
+    if (!profile) throw new ConvexError("This user has already been deleted. Refresh the roster.");
+    const authUser = await authComponent.getAnyUserById(ctx, profile.authUserId);
+    if (profile._id === organizer._id || isOrganizerEmail(profile.email) || (authUser && isOrganizerEmail(authUser.email))) {
+      throw new ConvexError("Organizer accounts cannot be deleted. Manage organizer access through backend configuration.");
+    }
+    if (args.confirmationEmail.trim().toLowerCase() !== profile.email.toLowerCase()) {
+      throw new ConvexError("Type this user’s email address to confirm deletion.");
+    }
+    const [memberships, onboarding, limits, invitations, acceptedInvitations, authEmailInvitations] = await Promise.all([
+      ctx.db.query("memberships").withIndex("by_profile", (q) => q.eq("profileId", profile._id)).collect(),
+      ctx.db.query("onboarding").withIndex("by_profile_cohort", (q) => q.eq("profileId", profile._id)).collect(),
+      ctx.db.query("missionGenerationLimits").withIndex("by_profile", (q) => q.eq("profileId", profile._id)).collect(),
+      ctx.db.query("invitations").withIndex("by_email", (q) => q.eq("email", profile.email.toLowerCase())).collect(),
+      ctx.db.query("invitations").withIndex("by_accepted_profile", (q) => q.eq("acceptedBy", profile._id)).collect(),
+      authUser && authUser.email.toLowerCase() !== profile.email.toLowerCase()
+        ? ctx.db.query("invitations").withIndex("by_email", (q) => q.eq("email", authUser.email.toLowerCase())).collect()
+        : [],
+    ]);
+    // These component mutations participate in the same transaction. A failed
+    // cleanup rolls back the deletion rather than leaving a partially reset user.
+    for (const model of ["session", "account", "twoFactor", "oauthApplication", "oauthAccessToken", "oauthConsent"] as const) {
+      await deleteAuthRows(ctx, { model, where: [{ field: "userId", operator: "eq", value: profile.authUserId }] });
+    }
+    for (const identifier of new Set([profile.email.toLowerCase(), profile.authUserId, ...(authUser ? [authUser.email.toLowerCase()] : [])])) {
+      await deleteAuthRows(ctx, { model: "verification", where: [{ field: "identifier", operator: "eq", value: identifier }] });
+    }
+    await ctx.runMutation(components.betterAuth.adapter.deleteOne, { input: { model: "user", where: [{ field: "_id", operator: "eq", value: profile.authUserId }] } });
+    const related = new Map([...memberships, ...onboarding, ...limits, ...invitations, ...acceptedInvitations, ...authEmailInvitations].map((doc) => [doc._id, doc]));
+    for (const id of related.keys()) await ctx.db.delete(id);
+    await ctx.db.delete(profile._id);
+    return { email: profile.email };
   },
 });

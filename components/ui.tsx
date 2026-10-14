@@ -5,8 +5,8 @@ import { LoaderCircle, ArrowUpRight, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode, ComponentProps } from "react";
 
-export function ActionButton({ children, busy, appearance = "primary", className = "", ...props }: Omit<ComponentProps<typeof Button>, "children"> & { busy?: boolean; appearance?: "primary" | "secondary"; children: ReactNode }) {
-  const colors = appearance === "secondary" ? "border border-line bg-white text-foreground hover:bg-soft" : "bg-forest text-accent-foreground hover:bg-forest/90";
+export function ActionButton({ children, busy, appearance = "primary", className = "", ...props }: Omit<ComponentProps<typeof Button>, "children"> & { busy?: boolean; appearance?: "primary" | "secondary" | "danger"; children: ReactNode }) {
+  const colors = { primary: "bg-forest text-accent-foreground hover:bg-forest/90", secondary: "border border-line bg-white text-foreground hover:bg-soft", danger: "bg-red-700 text-white hover:bg-red-800" }[appearance];
   return <Button {...props} aria-busy={busy || undefined} isDisabled={props.isDisabled || busy} className={`min-h-11 rounded-xl px-4 text-sm font-medium shadow-control transition-[background-color,transform] duration-150 ease-ui active:scale-[0.98] disabled:shadow-none ${colors} ${className}`}>
     {busy ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : null}{children}
   </Button>;

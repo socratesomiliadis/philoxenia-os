@@ -46,5 +46,5 @@ export default defineSchema({
     invitedBy: v.id("profiles"),
     acceptedBy: v.optional(v.id("profiles")),
   }).index("by_email", ["email"]).index("by_cohort", ["cohortId"])
-    .index("by_email_cohort", ["email", "cohortId"]),
+    .index("by_email_cohort", ["email", "cohortId"]).index("by_accepted_profile", ["acceptedBy"]),
 });

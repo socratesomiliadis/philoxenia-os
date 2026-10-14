@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { ShieldX } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -11,20 +11,21 @@ import { SignInScreen } from "./sign-in";
 import { ActionButton, InlineError, LoadingState, errorMessage } from "./ui";
 import { WorkspaceContext, previewCohort, type Viewer } from "./workspace-context";
 import { WorkspaceShell } from "./workspace-shell";
+import { EntryLayout } from "./entry-layout";
 
 export function PreviewWorkspace({ children }: { children: ReactNode }) {
   return <WorkspaceContext.Provider value={{ preview: true, viewer: null, cohorts: [previewCohort] }}><WorkspaceShell>{children}</WorkspaceShell></WorkspaceContext.Provider>;
 }
 
-export function WorkspaceGateway({ children }: { children: ReactNode }) {
-  if (!backendConfigured) return process.env.NODE_ENV === "development" ? <PreviewWorkspace>{children}</PreviewWorkspace> : <SignInScreen />;
-  return <ConnectedGateway>{children}</ConnectedGateway>;
+export function WorkspaceGateway({ children, allowPreview = true }: { children: ReactNode; allowPreview?: boolean }) {
+  if (!backendConfigured) return allowPreview && process.env.NODE_ENV === "development" ? <PreviewWorkspace>{children}</PreviewWorkspace> : <SignInScreen />;
+  return <ConnectedGateway allowPreview={allowPreview}>{children}</ConnectedGateway>;
 }
 
-function ConnectedGateway({ children }: { children: ReactNode }) {
+function ConnectedGateway({ children, allowPreview }: { children: ReactNode; allowPreview: boolean }) {
   const readiness = useQuery(api.auth.readiness);
   if (readiness === undefined) return <LoadingState />;
-  if (!readiness.google) return process.env.NODE_ENV === "development" ? <PreviewWorkspace>{children}</PreviewWorkspace> : <SignInScreen />;
+  if (!readiness.google) return allowPreview && process.env.NODE_ENV === "development" ? <PreviewWorkspace>{children}</PreviewWorkspace> : <SignInScreen />;
   return <AuthenticatedGateway>{children}</AuthenticatedGateway>;
 }
 
@@ -52,8 +53,15 @@ function AuthenticatedGateway({ children }: { children: ReactNode }) {
 
 function MemberWorkspace({ viewer, children }: { viewer: Viewer; children: ReactNode }) {
   const cohorts = useQuery(api.cohorts.list);
-  if (!cohorts) return <LoadingState label="Loading your cohort…" />;
-  return <WorkspaceContext.Provider value={{ preview: false, viewer, cohorts }}><WorkspaceShell>{children}</WorkspaceShell></WorkspaceContext.Provider>;
+  const requiredOnboardingCohortId = useQuery(api.onboarding.required);
+  const pathname = usePathname();
+  const router = useRouter();
+  const destination = requiredOnboardingCohortId && pathname !== "/onboarding" ? "/onboarding" : requiredOnboardingCohortId === null && pathname === "/sign-in" ? "/" : null;
+
+  useEffect(() => { if (destination) router.replace(destination); }, [destination, router]);
+
+  if (!cohorts || requiredOnboardingCohortId === undefined || destination) return <EntryLayout onboarding><LoadingState label="Getting your next step ready…" /></EntryLayout>;
+  return <WorkspaceContext.Provider value={{ preview: false, viewer, cohorts, requiredOnboardingCohortId }}>{pathname === "/onboarding" ? children : <WorkspaceShell>{children}</WorkspaceShell>}</WorkspaceContext.Provider>;
 }
 
 function AccessDenied({ email }: { email: string }) {

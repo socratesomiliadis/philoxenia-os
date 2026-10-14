@@ -1,24 +1,29 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Button, Label, TextArea, TextField } from "@heroui/react";
-import { ArrowLeft, ArrowRight, Check, MapPin, RefreshCw, Sparkles, Target } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, LoaderCircle, LogOut, Target } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { answersSchema, emptyAnswers, industries, templateGoals, validateGoals, type MissionGoal, type OnboardingAnswers } from "@/lib/mission";
+import { answersSchema, emptyAnswers, goalSchema, industries, templateGoals, validateGoals, type MissionGoal, type OnboardingAnswers } from "@/lib/mission";
 import { dateRangeLabel } from "@/lib/cohort-dates";
 import { useWorkspace, type Cohort } from "./workspace-context";
-import { ActionButton, Badge, Field, IconTile, InlineError, LoadingState, PageHeading, Panel, TextLink, errorMessage } from "./ui";
+import { ActionButton, Badge, IconTile, InlineError, LoadingState, TextLink, errorMessage } from "./ui";
 import { MissionGoals } from "./mission-goals";
+import { MissionReview } from "./mission-review";
+import { EntryCard, EntryLayout } from "./entry-layout";
+import { BrandMark } from "./brand";
+import { authClient } from "@/lib/auth-client";
 
 type Suggestion = { goals: MissionGoal[]; revision: number; source: "ai" | "template"; fallbackReason?: "unconfigured" | "unavailable" | "requested" };
 type EditorProps = {
-  cohort: Cohort; initial: Doc<"onboarding"> | null; preview?: boolean;
+  cohort: Cohort; initial: Doc<"onboarding"> | null; preview?: boolean; firstVisit?: boolean; accountName?: string; cohortPicker?: ReactNode;
   onSave: (answers: OnboardingAnswers, step: number) => Promise<number>;
-  onSuggest: (templates: boolean) => Promise<Suggestion>;
+  onSuggest: () => Promise<Suggestion>;
   onSaveGoals: (goals: MissionGoal[], revision: number, confirm: boolean) => Promise<number>;
 };
 const steps = [
@@ -29,28 +34,28 @@ const steps = [
 ];
 
 export function Onboarding() {
-  const { preview, cohorts: allCohorts, viewer } = useWorkspace();
+  const { preview, cohorts: allCohorts, viewer, requiredOnboardingCohortId } = useWorkspace();
   const cohorts = preview ? allCohorts : allCohorts.filter((cohort) => viewer?.participantCohortIds.includes(cohort._id));
   const [selected, setSelected] = useState<string>();
-  const cohort = cohorts.find((c) => c._id === selected) ?? cohorts.find((c) => c.status === "active") ?? cohorts.find((c) => c.status === "upcoming") ?? cohorts[0];
+  const cohort = cohorts.find((c) => c._id === requiredOnboardingCohortId) ?? cohorts.find((c) => c._id === selected) ?? cohorts.find((c) => c.status === "active") ?? cohorts.find((c) => c.status === "upcoming") ?? cohorts[0];
   if (preview) return <OnboardingPreview cohort={cohort} />;
-  if (!cohort && viewer?.isOrganizer) return <><PageHeading title="Personal missions" description="Each Hustler sets three goals for their stay." /><Panel className="space-y-4 p-7"><p className="text-sm leading-7 text-muted">Open a Hustler’s mission from the cohort roster in the Command Center.</p><TextLink href="/organizer">Open the Command Center</TextLink></Panel></>;
-  if (!cohort) return <><PageHeading title="Your personal mission" description="Three goals for your two weeks in San Francisco." /><Panel className="space-y-4 p-7"><h2 className="text-xl font-medium">Your cohort comes first.</h2><p className="text-sm text-muted">Ask your organizer to assign a cohort and confirm your stay dates before setting your mission.</p><TextLink href="/">Return home</TextLink></Panel></>;
-  return <>{cohorts.length > 1 ? <div className="mb-6 max-w-md"><label htmlFor="mission-cohort" className="mb-2 block text-sm font-medium">Choose your cohort</label><select id="mission-cohort" value={cohort._id} onChange={(event) => setSelected(event.target.value)} className="min-h-11 w-full rounded-xl border border-line bg-white px-3 text-sm">{cohorts.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select></div> : null}<ConnectedOnboarding key={cohort._id} cohort={cohort} /></>;
+  if (!cohort) return <EntryLayout onboarding><EntryCard><h2 className="text-[28px] font-medium tracking-tight">{viewer?.isOrganizer ? "Personal missions" : "Your cohort comes first."}</h2><p className="mt-4 mb-6 text-sm leading-7 text-muted">{viewer?.isOrganizer ? "Open a Hustler’s mission from the cohort roster in the Command Center." : "Ask your organizer to assign a cohort and confirm your stay dates before setting your mission."}</p><TextLink href={viewer?.isOrganizer ? "/organizer" : "/"}>{viewer?.isOrganizer ? "Open the Command Center" : "Return home"}</TextLink></EntryCard></EntryLayout>;
+  const cohortPicker = !requiredOnboardingCohortId && cohorts.length > 1 ? <div className="mb-5"><label htmlFor="mission-cohort" className="mb-2 block text-sm font-medium">Choose your cohort</label><select id="mission-cohort" value={cohort._id} onChange={(event) => setSelected(event.target.value)} className="min-h-11 w-full rounded-xl border border-line bg-white px-3 text-sm">{cohorts.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select></div> : null;
+  return <ConnectedOnboarding key={cohort._id} cohort={cohort} firstVisit={Boolean(requiredOnboardingCohortId)} cohortPicker={cohortPicker} />;
 }
 
-function ConnectedOnboarding({ cohort }: { cohort: Cohort }) {
+function ConnectedOnboarding({ cohort, firstVisit, cohortPicker }: { cohort: Cohort; firstVisit: boolean; cohortPicker: ReactNode }) {
+  const { viewer } = useWorkspace();
   const data = useQuery(api.onboarding.get, { cohortId: cohort._id });
   const save = useMutation(api.onboarding.saveDraft);
   const suggest = useAction(api.missions.generate);
-  const templates = useMutation(api.onboarding.useTemplates);
   const saveGoals = useMutation(api.onboarding.saveProposal);
   const onSave = useCallback((answers: OnboardingAnswers, step: number) => save({ cohortId: cohort._id, answers, step }), [save, cohort._id]);
-  const onSuggest = useCallback((useTemplates: boolean) => useTemplates ? templates({ cohortId: cohort._id }) : suggest({ cohortId: cohort._id }), [templates, suggest, cohort._id]);
+  const onSuggest = useCallback(() => suggest({ cohortId: cohort._id }), [suggest, cohort._id]);
   const onSaveGoals = useCallback((goals: MissionGoal[], expectedRevision: number, confirm: boolean) => saveGoals({ cohortId: cohort._id, goals, expectedRevision, confirm }), [saveGoals, cohort._id]);
 
-  if (data === undefined) return <LoadingState label="Loading your mission…" />;
-  return <MissionEditor cohort={cohort} initial={data} onSave={onSave} onSuggest={onSuggest} onSaveGoals={onSaveGoals} />;
+  if (data === undefined) return <EntryLayout onboarding><LoadingState label="Loading your mission…" /></EntryLayout>;
+  return <MissionEditor cohort={cohort} initial={data} firstVisit={firstVisit} cohortPicker={cohortPicker} accountName={viewer?.name} onSave={onSave} onSuggest={onSuggest} onSaveGoals={onSaveGoals} />;
 }
 
 export function OnboardingPreview({ cohort }: { cohort: Cohort }) {
@@ -62,16 +67,20 @@ export function OnboardingPreview({ cohort }: { cohort: Cohort }) {
   return <MissionEditor cohort={cohort} initial={null} preview onSave={onSave} onSuggest={onSuggest} onSaveGoals={onSaveGoals} />;
 }
 
-function MissionEditor({ cohort, initial, preview, onSave, onSuggest, onSaveGoals }: EditorProps) {
+function MissionEditor({ cohort, initial, preview, firstVisit, accountName, cohortPicker, onSave, onSuggest, onSaveGoals }: EditorProps) {
   const router = useRouter();
   const [step, setStep] = useState(initial?.step ?? 0);
   const [goals, setGoals] = useState<MissionGoal[]>(initial?.proposal ?? initial?.confirmedGoals ?? []);
   const [confirmed, setConfirmed] = useState(initial?.confirmedGoals);
   const [reviewing, setReviewing] = useState(!initial?.confirmedGoals);
-  const [source, setSource] = useState(initial?.source);
+  const [expandedGoal, setExpandedGoal] = useState<number | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [goalsDirty, setGoalsDirty] = useState(false);
+  const attemptedAutoGeneration = useRef(false);
   const [reason, setReason] = useState(initial?.fallbackReason);
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState(preview ? "Sample answers stay in this tab." : "Changes save as you go.");
+  const [saveError, setSaveError] = useState(false);
+  const [goalNotice, setGoalNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const revision = useRef(initial?.revision ?? 0);
   const queue = useRef(Promise.resolve());
@@ -85,19 +94,20 @@ function MissionEditor({ cohort, initial, preview, onSave, onSuggest, onSaveGoal
     const serialized = JSON.stringify({ answers, step: currentStep });
     const operation = queue.current.then(async () => {
       if (serialized === lastSaved.current) return;
-      setStatus("Saving…");
-      revision.current = await onSave(answers, currentStep);
-      lastSaved.current = serialized;
-      setStatus(preview ? "Sample answers stay in this tab." : "Draft saved.");
+      try {
+        revision.current = await onSave(answers, currentStep);
+        lastSaved.current = serialized;
+        setSaveError(false);
+      } catch (failure) { setSaveError(true); throw failure; }
     });
     queue.current = operation.catch(() => {});
     return operation;
-  }, [onSave, preview]);
+  }, [onSave]);
 
   useEffect(() => {
     if (busy) return;
     const timeout = setTimeout(() => {
-      persist(getValues(), step).catch(() => { setStatus("Draft not saved."); setError("Could not save your answers. Check your connection and use Save draft to retry."); });
+      persist(getValues(), step).catch(() => { /* The save error appears beside the form actions. */ });
     }, 800);
     return () => clearTimeout(timeout);
   }, [snapshot, step, busy, getValues, persist]);
@@ -111,27 +121,48 @@ function MissionEditor({ cohort, initial, preview, onSave, onSuggest, onSaveGoal
       if (!result.success) { setError(result.error.issues[0].message); return; }
     }
     setBusy(true);
-    try { await persist(answers, next); setStep(next); requestAnimationFrame(() => heading.current?.focus()); }
+    try {
+      await persist(answers, next);
+      if (next === 4) attemptedAutoGeneration.current = true;
+      setStep(next);
+      if (next === 4) await generate();
+      requestAnimationFrame(() => heading.current?.focus());
+    }
     catch (failure) { setError(errorMessage(failure)); }
     finally { setBusy(false); }
   }
 
-  async function generate(templates: boolean) {
+  async function generate() {
     setError(null);
     const parsed = answersSchema.safeParse(getValues());
     if (!parsed.success) { setError(parsed.error.issues[0].message); return; }
-    setBusy(true);
-    setStatus(templates ? "Preparing template goals…" : "Creating your three goals…");
+    setBusy(true); setGenerating(true);
+    setGoalNotice(null);
     try {
       await persist(getValues(), 4);
-      const result = await onSuggest(templates);
+      const result = await onSuggest();
       revision.current = result.revision;
-      setGoals(result.goals); setSource(result.source); setReason(result.fallbackReason);
-      setStep(4); setReviewing(true); setStatus(preview ? "Sample goals · Changes stay in this tab." : "Suggestions saved. Make them yours.");
+      setGoals(result.goals); setReason(result.fallbackReason); setExpandedGoal(null); setGoalsDirty(false);
+      setStep(4); setReviewing(true);
       requestAnimationFrame(() => heading.current?.focus());
-    } catch (failure) { setError(errorMessage(failure)); setStatus("Your saved goals are unchanged."); }
-    finally { setBusy(false); }
+    } catch (failure) { setError(errorMessage(failure)); }
+    finally { setBusy(false); setGenerating(false); }
   }
+
+  const resumeMission = useEffectEvent(() => {
+    if (initial?.proposal?.length === 3) {
+      revision.current = initial.revision;
+      setGoals(initial.proposal); setReason(initial.fallbackReason); setError(null);
+    } else if (!attemptedAutoGeneration.current) {
+      attemptedAutoGeneration.current = true;
+      void generate();
+    }
+  });
+  useEffect(() => {
+    if (step !== 4 || goals.length !== 0) return;
+    const timeout = setTimeout(() => resumeMission(), 0);
+    return () => clearTimeout(timeout);
+  }, [step, goals.length, initial?.proposal]);
 
   async function saveGoals(confirm: boolean) {
     setError(null); setBusy(true);
@@ -139,46 +170,84 @@ function MissionEditor({ cohort, initial, preview, onSave, onSuggest, onSaveGoal
       const valid = validateGoals(goals, cohort.startDate, cohort.endDate);
       await persist(getValues(), 4);
       revision.current = await onSaveGoals(valid, revision.current, confirm);
-      setStatus(preview ? "Sample mission · Nothing saved to your account." : confirm ? "Mission confirmed." : "Goal draft saved.");
-      if (confirm) { setConfirmed(valid); setReviewing(false); }
-    } catch (failure) { setError(failure instanceof Error && failure.name === "ZodError" ? "Give each goal a title, a target from 1 to 100, a measure, a valid deadline, and one to three first actions." : errorMessage(failure)); }
+      setGoalsDirty(false);
+      setGoalNotice(!confirm ? preview ? "Sample goal draft updated." : "Goal draft saved." : null);
+      if (confirm) { setConfirmed(valid); setReviewing(false); if (firstVisit) router.replace("/"); }
+    } catch (failure) {
+      const invalid = goals.findIndex((goal) => !goalSchema.safeParse(goal).success || goal.deadline < cohort.startDate || goal.deadline > cohort.endDate);
+      if (invalid >= 0) setExpandedGoal(invalid);
+      setError(failure instanceof Error && failure.name === "ZodError" ? "Give each goal a title, a target from 1 to 100, a measure, a valid deadline, and one to three first actions." : errorMessage(failure));
+    }
     finally { setBusy(false); }
   }
 
-  function editGoal(index: number, patch: Partial<MissionGoal>) { setGoals((current) => current.map((goal, i) => i === index ? { ...goal, ...patch } : goal)); setStatus("Goal edits not saved yet."); }
+  function editGoal(index: number, patch: Partial<MissionGoal>) { setGoals((current) => current.map((goal, i) => i === index ? { ...goal, ...patch } : goal)); setGoalNotice(null); setGoalsDirty(true); }
 
-  return <div className="space-y-6">
-    <PageHeading title="Your personal mission" description="A little reflection. Three clear goals. Two weeks to make them happen." action={<ActionButton appearance="secondary" isDisabled={busy} onPress={() => { void persist(getValues(), step).then(() => router.push(preview ? "/preview" : "/")).catch((failure) => setError(errorMessage(failure))); }}>Return home</ActionButton>} />
-    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
-      <div className="min-w-0 space-y-5">
-        {confirmed && !reviewing ? <Panel className="space-y-6 p-6 sm:p-8"><div className="flex flex-wrap items-center gap-3"><IconTile icon={Target} tone="green" /><h2 ref={heading} tabIndex={-1} className="text-2xl font-medium tracking-tight outline-none">Your mission is set.</h2><Badge tone="green">{preview ? "Sample confirmation" : "Confirmed"}</Badge></div><MissionGoals goals={confirmed} />{confirmed.map((goal, i) => <div key={i}><h3 className="text-sm font-medium">First steps · {goal.title}</h3><ul className="mt-2 list-disc space-y-1 ps-5 text-sm leading-6 wrap-anywhere text-muted">{goal.firstActions.map((action, j) => <li key={j}>{action}</li>)}</ul></div>)}<div className="flex flex-wrap gap-3"><ActionButton appearance="secondary" onPress={() => { setStep(4); setReviewing(true); }}>Edit your mission</ActionButton><TextLink href={preview ? "/preview" : "/"}>Return home</TextLink></div></Panel> : <>
-          <ol aria-label="Onboarding progress" className="grid grid-cols-4 gap-2">{steps.map((item, index) => <li key={item.label} aria-current={step === index ? "step" : undefined}><div className={`h-1 rounded-full ${index <= step ? "bg-forest" : "bg-soft"}`} /><p className={`mt-2 text-xs leading-5 ${index === step ? "font-medium text-forest" : "text-muted"}`}><span className="tabular-nums">{index + 1}</span><span className="hidden sm:inline"> · {item.label}</span></p></li>)}</ol>
-          {step < 4 ? <Panel className="p-6 sm:p-8"><form onSubmit={(event) => { event.preventDefault(); void navigate(step + 1); }}>
-            <h2 ref={heading} tabIndex={-1} className="text-2xl font-medium tracking-tight outline-none">{steps[step].title}</h2><p className="mt-3 max-w-xl text-sm leading-7 text-muted">{steps[step].description}</p>
-            <fieldset disabled={busy} className="mt-7 min-w-0 border-0 p-0"><legend className="sr-only">{steps[step].title}</legend>
-              {step === 2 ? <div className="flex flex-wrap gap-2">{industries.map((industry) => { const selected = values.industries?.includes(industry); return <Button key={industry} aria-pressed={selected} isDisabled={!selected && (values.industries?.length ?? 0) >= 8} onPress={() => { const current = getValues("industries"); setValue("industries", selected ? current.filter((item) => item !== industry) : [...current, industry], { shouldDirty: true }); }} className={`min-h-11 h-auto max-w-full justify-start gap-2 rounded-xl border px-3 py-2 text-start text-sm whitespace-normal ${selected ? "border-forest bg-sage text-forest" : "border-line bg-white text-muted"}`}>{selected ? <Check className="size-4 shrink-0" aria-hidden /> : null}{industry}</Button>; })}</div> : <Controller name={steps[step].field as "building" | "outcomes" | "offering"} control={control} render={({ field }) => <TextField key={field.name} name={field.name} value={field.value} onChange={field.onChange} onBlur={field.onBlur} className="space-y-2"><Label className="text-sm font-medium">{steps[step].label}</Label><TextArea ref={field.ref} rows={6} maxLength={1200} placeholder={steps[step].placeholder} className="min-h-40 w-full resize-y rounded-xl border border-line bg-white p-4 text-sm leading-7 placeholder:text-muted/60 focus:border-forest focus:ring-2 focus:ring-forest/10" /><p className="text-xs text-muted">{step === 3 ? "At least 5 characters" : "At least 10 characters"} · Up to 1,200 characters</p></TextField>} />}
-            </fieldset>
-            <div className="mt-6"><InlineError message={error} /></div>
-            <div className="mt-7 flex flex-wrap items-center justify-between gap-3">{step > 0 ? <ActionButton appearance="secondary" isDisabled={busy} onPress={() => void navigate(step - 1)}><ArrowLeft className="size-4" aria-hidden />Back</ActionButton> : <span />}<ActionButton type="submit" busy={busy}>Continue<ArrowRight className="size-4" aria-hidden /></ActionButton></div>
-          </form></Panel> : <div className="space-y-4">
-            <Panel className="space-y-4 p-6 sm:p-8"><h2 ref={heading} tabIndex={-1} className="text-2xl font-medium tracking-tight outline-none">{goals.length ? "Make these goals yours." : "Turn your answers into action."}</h2><p className="text-sm leading-7 text-muted">{confirmed ? "Your confirmed mission stays in place until you confirm a replacement." : "Review the targets, deadlines, and first steps before confirming your three goals."}</p>
-              {reason ? <p className="rounded-xl bg-soft p-4 text-sm leading-6 text-muted">{reason === "unconfigured" ? "AI isn’t connected yet. These template goals are ready to edit." : reason === "unavailable" ? "AI couldn’t create your mission this time. Start with these editable template goals." : "These are template goals. Adapt them to your project and ambitions."}</p> : source === "ai" ? <Badge>AI suggestions · Review before confirming</Badge> : null}
-              <p className="text-xs leading-6 text-muted">Creating AI suggestions sends your project, ambitions, interests, offered skills, and stay dates to the configured AI provider. Keep private details out of your answers. You can use template goals instead.</p>
-              <div className="flex flex-wrap gap-3"><ActionButton appearance={goals.length ? "secondary" : "primary"} busy={busy} onPress={() => void generate(false)}>{goals.length ? <RefreshCw className="size-4" aria-hidden /> : <Sparkles className="size-4" aria-hidden />}{goals.length ? "Suggest new goals" : "Create my mission"}</ActionButton><ActionButton appearance="secondary" isDisabled={busy} onPress={() => void generate(true)}>Use template goals</ActionButton><ActionButton appearance="secondary" isDisabled={busy} onPress={() => void navigate(0)}>Edit answers</ActionButton></div>
-            </Panel>
-            {goals.map((goal, index) => <Panel key={index} className="p-6 sm:p-8"><fieldset disabled={busy} className="min-w-0 space-y-5"><legend className="mb-5 text-base font-medium text-forest">Goal {index + 1}</legend>
-              <Field label={`Goal ${index + 1} title`} value={goal.title} maxLength={100} onChange={(event) => editGoal(index, { title: event.target.value })} />
-              <div className="grid gap-4 sm:grid-cols-[100px_minmax(0,1fr)]"><Field label={`Goal ${index + 1} target`} type="number" min={1} max={100} value={String(goal.target)} onChange={(event) => editGoal(index, { target: Number(event.target.value) })} /><Field label={`Goal ${index + 1} measure`} value={goal.metric} maxLength={160} onChange={(event) => editGoal(index, { metric: event.target.value })} /></div>
-              <Field label={`Goal ${index + 1} deadline`} type="date" min={cohort.startDate} max={cohort.endDate} value={goal.deadline} onChange={(event) => editGoal(index, { deadline: event.target.value })} />
-              <TextField className="space-y-2"><Label className="text-sm font-medium">Goal {index + 1} first actions</Label><TextArea rows={3} maxLength={722} value={goal.firstActions.join("\n")} onChange={(event) => editGoal(index, { firstActions: event.target.value.split("\n") })} className="w-full resize-y rounded-xl border border-line bg-white p-3 text-sm leading-7 focus:border-forest focus:ring-2 focus:ring-forest/10" /><p className="text-xs text-muted">One to three actions, each on its own line. Up to 240 characters per action.</p></TextField>
-            </fieldset></Panel>)}
-            <InlineError message={error} />
-            {goals.length === 3 ? <div className="flex flex-wrap gap-3"><ActionButton busy={busy} onPress={() => void saveGoals(true)}><Check className="size-4" aria-hidden />{confirmed ? "Confirm replacement mission" : "Confirm my mission"}</ActionButton><ActionButton appearance="secondary" isDisabled={busy} onPress={() => void saveGoals(false)}>Save goal draft</ActionButton>{confirmed ? <ActionButton appearance="secondary" isDisabled={busy} onPress={() => setReviewing(false)}>View confirmed mission</ActionButton> : null}</div> : null}
-          </div>}
-        </>}
-        <div className="flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-xs leading-6 text-muted">{status}</p>{step < 4 && reviewing ? <ActionButton appearance="secondary" isDisabled={busy} onPress={() => { setError(null); void persist(getValues(), step).catch((failure) => setError(errorMessage(failure))); }}>Save draft</ActionButton> : null}</div>
-      </div>
-      <aside className="space-y-4 xl:sticky xl:top-24"><Panel className="space-y-5 p-6"><IconTile icon={MapPin} tone="green" /><h2 className="text-base font-medium">Your two weeks</h2><p className="text-sm leading-6 wrap-anywhere text-muted">{cohort.name}</p><p className="text-sm font-medium tabular-nums">{dateRangeLabel(cohort.startDate, cohort.endDate)}</p><p className="text-xs text-muted">San Francisco · Pacific Time</p></Panel><p className="px-1 text-xs leading-6 text-muted">Your answers and mission are private to you and the organizers. {preview ? "This sample never calls the AI provider or saves account data." : "You can return here to adjust your mission."}</p></aside>
-    </div>
+  const accountControls = <div className="flex min-w-0 flex-col items-end text-end text-xs leading-5 text-muted">
+    <p className="wrap-anywhere">{preview ? "Onboarding preview" : accountName}</p>
+    {preview ? <Link href="/preview" className="mt-1 text-forest underline-offset-4 hover:underline">Return to preview</Link> : firstVisit ? <EntrySignOut /> : <Button variant="ghost" isDisabled={busy} onPress={() => { void persist(getValues(), step).then(() => router.push("/")).catch((failure) => setError(errorMessage(failure))); }} className="-me-2 min-h-9 px-2 text-xs text-forest">Return home</Button>}
   </div>;
+  const saveFeedback = saveError ? <div className="space-y-2"><InlineError message="Could not save your answers. Check your connection and retry." /><ActionButton appearance="secondary" isDisabled={busy} onPress={async () => {
+    setBusy(true); setError(null);
+    try { await persist(getValues(), step); if (step === 4 && goals.length === 0) await generate(); } catch { /* Keep the save error and retry control visible. */ }
+    finally { setBusy(false); }
+  }}>Retry save</ActionButton></div> : null;
+
+  return <EntryLayout onboarding>
+    {cohortPicker}
+    {confirmed && !reviewing ? <EntryCard>
+      <div className="flex items-start justify-between gap-4"><IconTile icon={Target} tone="green" />{accountControls}</div>
+      {saveFeedback}
+      <h2 ref={heading} tabIndex={-1} className="mt-6 text-[28px] leading-tight font-medium tracking-[-0.045em] outline-none sm:text-[34px]">Your mission is set.</h2>
+      <div className="mt-4"><Badge tone="green">{preview ? "Sample confirmation" : "Confirmed"}</Badge></div>
+      <div className="mt-7"><MissionGoals goals={confirmed} /></div>
+      <div className="mt-7 space-y-5">{confirmed.map((goal, i) => <div key={i}><h3 className="text-sm font-medium">First steps · {goal.title}</h3><ul className="mt-2 list-disc space-y-1 ps-5 text-sm leading-6 wrap-anywhere text-muted">{goal.firstActions.map((action, j) => <li key={j}>{action}</li>)}</ul></div>)}</div>
+      <div className="mt-8 flex flex-wrap items-center gap-3"><ActionButton onPress={() => router.push(preview ? "/preview" : "/")}>Enter your workspace<ArrowRight className="size-4" aria-hidden /></ActionButton><ActionButton appearance="secondary" onPress={() => { setStep(4); setReviewing(true); }}>Edit your mission</ActionButton></div>
+    </EntryCard> : <>
+      <EntryCard>
+        <div className="mb-6 flex items-start justify-between gap-4"><div aria-hidden className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-sage/80"><BrandMark className="h-auto w-11" /></div>{accountControls}</div>
+        <div className="mb-6">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted"><p>{step < 4 ? `Step ${step + 1} of 4` : "Your personal mission"}</p><span>{step < 4 ? "A few minutes to get started" : "Three goals for your two weeks"}</span></div>
+          <ol aria-label="Onboarding progress" className="grid grid-cols-4 gap-2">{steps.map((item, index) => <li key={item.label} aria-label={item.label} aria-current={step === index ? "step" : undefined}><div className={`h-1 rounded-full ${index <= step ? "bg-forest" : "bg-soft"}`} /><span className="sr-only">{item.label}</span></li>)}</ol>
+        </div>
+        {step < 4 ? <form onSubmit={(event) => { event.preventDefault(); void navigate(step + 1); }}>
+          <h2 ref={heading} tabIndex={-1} className="text-[28px] leading-tight font-medium tracking-[-0.045em] outline-none sm:text-[34px]">{steps[step].title}</h2>
+          <p className="mt-3 text-sm leading-7 text-muted">{steps[step].description}</p>
+          <fieldset disabled={busy} className="mt-6 min-w-0 border-0 p-0"><legend className="sr-only">{steps[step].title}</legend>
+            {step === 2 ? <div className="flex flex-wrap gap-2">{industries.map((industry) => { const selected = values.industries?.includes(industry); return <Button key={industry} aria-pressed={selected} isDisabled={busy || (!selected && (values.industries?.length ?? 0) >= 8)} onPress={() => { const current = getValues("industries"); setValue("industries", selected ? current.filter((item) => item !== industry) : [...current, industry], { shouldDirty: true }); }} className={`min-h-11 h-auto max-w-full justify-start gap-2 rounded-xl border px-3 py-2 text-start text-sm whitespace-normal ${selected ? "border-forest bg-sage text-forest" : "border-line bg-white text-muted"}`}>{selected ? <Check className="size-4 shrink-0" aria-hidden /> : null}{industry}</Button>; })}</div> : <Controller name={steps[step].field as "building" | "outcomes" | "offering"} control={control} render={({ field }) => <TextField key={field.name} name={field.name} value={field.value} onChange={field.onChange} onBlur={field.onBlur} className="space-y-2"><Label className="text-sm font-medium">{steps[step].label}</Label><TextArea ref={field.ref} rows={4} maxLength={1200} placeholder={steps[step].placeholder} className="min-h-32 w-full resize-y rounded-xl border border-line bg-white p-4 text-sm leading-7 placeholder:text-muted/60 focus:border-forest focus:ring-2 focus:ring-forest/10" /><p className="text-xs leading-5 text-muted">{step === 3 ? "At least 5 characters" : "At least 10 characters"} · Up to 1,200 characters</p></TextField>} />}
+          </fieldset>
+          <div className="mt-5">{saveFeedback}<InlineError message={saveError ? null : error} /></div>
+          <div className="mt-7 flex flex-wrap items-center justify-between gap-3">{step > 0 ? <ActionButton appearance="secondary" isDisabled={busy} onPress={() => void navigate(step - 1)}><ArrowLeft className="size-4" aria-hidden />Back</ActionButton> : <span />}<ActionButton type="submit" busy={busy}>Continue<ArrowRight className="size-4" aria-hidden /></ActionButton></div>
+        </form> : <div>
+          <h2 ref={heading} tabIndex={-1} className="text-[28px] leading-tight font-medium tracking-[-0.045em] outline-none sm:text-[34px]">{generating ? "Creating your mission…" : "Your mission, in three goals."}</h2>
+          <p className="mt-3 text-sm leading-7 text-muted">{generating ? "Turning your answers into concrete next steps for your stay." : confirmed ? "Review your next steps. Your confirmed mission stays in place until you confirm a replacement." : "Three things to work toward in SF. Open any goal to adjust the details."}</p>
+          {generating ? <div role="status" className="flex min-h-48 items-center justify-center gap-3 text-sm text-muted"><LoaderCircle className="size-5 animate-spin text-forest motion-reduce:animate-none" aria-hidden />Finding your next steps…</div> : goals.length === 3 ? <>
+            {reason && !preview ? <p className="mt-4 rounded-xl bg-soft p-4 text-xs leading-6 text-muted">{reason === "unconfigured" ? "AI isn’t connected yet. These starter goals are ready to edit." : "AI wasn’t available this time. These starter goals are ready to edit."}</p> : null}
+            <div className="mt-5"><MissionReview goals={goals} expanded={expandedGoal} onExpand={setExpandedGoal} onChange={editGoal} disabled={busy} startDate={cohort.startDate} endDate={cohort.endDate} /></div>
+            {saveFeedback}<InlineError message={saveError ? null : error} />
+            <div className="mt-5 space-y-3"><ActionButton busy={busy} className="w-full" onPress={() => void saveGoals(true)}><Check className="size-4" aria-hidden />{confirmed ? "Confirm replacement mission" : firstVisit ? "Confirm & enter workspace" : "Confirm my mission"}</ActionButton>
+              <div className="flex flex-wrap items-center justify-between gap-3"><Button variant="ghost" isDisabled={busy} onPress={() => void navigate(0)} className="min-h-11 px-2 text-sm text-muted"><ArrowLeft className="size-4" aria-hidden />Edit answers</Button>{goalsDirty ? <ActionButton appearance="secondary" isDisabled={busy} onPress={() => void saveGoals(false)}>Save goal draft</ActionButton> : confirmed ? <Button variant="ghost" isDisabled={busy} onPress={() => setReviewing(false)} className="min-h-11 px-2 text-sm text-muted">View confirmed mission</Button> : null}</div>
+            </div>
+            {goalNotice ? <p role="status" className="mt-3 text-xs leading-6 text-muted">{goalNotice}</p> : null}
+          </> : <div className="mt-5 space-y-4">{saveFeedback}<InlineError message={saveError ? null : error} />{error && !saveError ? <ActionButton appearance="secondary" isDisabled={busy} onPress={() => void generate()}>Try again</ActionButton> : null}<Button variant="ghost" isDisabled={busy} onPress={() => void navigate(0)} className="min-h-11 px-2 text-sm text-muted">Edit answers</Button></div>}
+        </div>}
+        <div className="mt-7 border-t border-line pt-4 text-xs leading-6 text-muted"><p className="wrap-anywhere">{cohort.name}</p><p className="tabular-nums">{dateRangeLabel(cohort.startDate, cohort.endDate)} · San Francisco</p></div>
+      </EntryCard>
+    </>}
+  </EntryLayout>;
+}
+
+function EntrySignOut() {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function signOut() {
+    setBusy(true); setError(null);
+    try {
+      const result = await authClient.signOut();
+      if (result.error) throw new Error(result.error.message);
+      router.replace("/sign-in"); router.refresh();
+    } catch { setError("Could not sign out. Try again."); setBusy(false); }
+  }
+  return <div><Button variant="ghost" isDisabled={busy} onPress={signOut} className="-me-2 min-h-9 px-2 text-xs text-muted hover:text-forest"><LogOut className="size-3.5" aria-hidden />{busy ? "Signing out…" : "Sign out"}</Button>{error ? <p role="alert" className="mt-2 text-red-800">{error}</p> : null}</div>;
 }

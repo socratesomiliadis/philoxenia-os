@@ -31,6 +31,24 @@ function completeAnswers(doc: Doc<"onboarding"> | null) {
   return { doc, answers: result.data };
 }
 
+export const required = query({
+  args: {},
+  handler: async (ctx) => {
+    const { profile, memberships, isOrganizer } = await requireMember(ctx);
+    // Organizers need the Command Center to set up cohorts before participating.
+    if (isOrganizer) return null;
+    const pending = await Promise.all(memberships.filter((membership) => membership.status === "active").map(async (membership) => {
+      const [cohort, onboarding] = await Promise.all([
+        ctx.db.get(membership.cohortId), record(ctx, profile._id, membership.cohortId),
+      ]);
+      if (!cohort || cohort.status === "completed" || onboarding?.confirmedGoals?.length === 3) return null;
+      return { cohortId: cohort._id, status: cohort.status, startDate: membership.startDateOverride ?? cohort.startDate };
+    }));
+    return pending.filter((cohort) => cohort !== null)
+      .sort((a, b) => Number(b.status === "active") - Number(a.status === "active") || a.startDate.localeCompare(b.startDate))[0]?.cohortId ?? null;
+  },
+});
+
 export const get = query({
   args: { cohortId: v.id("cohorts"), profileId: v.optional(v.id("profiles")) },
   handler: async (ctx, args) => {
@@ -92,9 +110,9 @@ export const beginGeneration = internalMutation({
     const { doc, answers } = completeAnswers(await record(ctx, stay.profileId, args.cohortId));
     const now = Date.now();
     const limit = await ctx.db.query("missionGenerationLimits").withIndex("by_profile", (q) => q.eq("profileId", stay.profileId)).unique();
-    if (limit && now - limit.lastAttempt < 60_000) throw new ConvexError("Wait one minute before generating again, or use template goals now.");
+    if (limit && now - limit.lastAttempt < 60_000) throw new ConvexError("Wait one minute before creating new goals.");
     const sameWindow = limit && now - limit.windowStart < 3_600_000;
-    if (sameWindow && limit.count >= 5) throw new ConvexError("You’ve reached five generations this hour. Use template goals or try again later.");
+    if (sameWindow && limit.count >= 5) throw new ConvexError("You’ve reached five generations this hour. Try again later.");
     const fields = { windowStart: sameWindow ? limit.windowStart : now, count: sameWindow ? limit.count + 1 : 1, lastAttempt: now };
     if (limit) await ctx.db.patch(limit._id, fields);
     else await ctx.db.insert("missionGenerationLimits", { profileId: stay.profileId, ...fields });

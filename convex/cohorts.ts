@@ -47,7 +47,10 @@ export const roster = query({
   handler: async (ctx, { cohortId }) => {
     await requireOrganizer(ctx);
     const memberships = await ctx.db.query("memberships").withIndex("by_cohort", (q) => q.eq("cohortId", cohortId)).collect();
-    const participants = await Promise.all(memberships.map(async (m) => ({ ...m, profile: await ctx.db.get(m.profileId) })));
+    const participants = await Promise.all(memberships.map(async (m) => {
+      const profile = await ctx.db.get(m.profileId);
+      return { ...m, profile, isOrganizer: Boolean(profile && isOrganizerEmail(profile.email)) };
+    }));
     const invitations = await ctx.db.query("invitations").withIndex("by_cohort", (q) => q.eq("cohortId", cohortId)).collect();
     return { participants, invitations: invitations.filter((i) => i.status !== "accepted") };
   },

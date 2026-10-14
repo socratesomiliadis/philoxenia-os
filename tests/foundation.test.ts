@@ -4,6 +4,7 @@ import betterAuthTest from "@convex-dev/better-auth/test";
 import schema from "../convex/schema";
 import { api, components } from "../convex/_generated/api";
 import { sprintDates } from "../lib/cohort-dates";
+import { templateGoals } from "../lib/mission";
 
 const modules = import.meta.glob("../convex/**/*.{ts,js}");
 
@@ -24,6 +25,72 @@ async function identity(t: ReturnType<typeof setup>, email: string, verified = t
 afterEach(() => vi.unstubAllEnvs());
 
 describe("Stage 1 foundation", () => {
+  it("permanently deletes a user across cohorts and auth records, then allows a fresh invitation and onboarding", async () => {
+    const t = setup();
+    const organizer = await identity(t, "organizer@example.com");
+    await organizer.mutation(api.users.ensureProfile, {});
+    const cohortId = await organizer.mutation(api.cohorts.create, { name: "First chapter", description: "", startDate: "2026-11-02" });
+    const secondCohortId = await organizer.mutation(api.cohorts.create, { name: "Second chapter", description: "", startDate: "2027-01-04" });
+    for (const id of [cohortId, secondCohortId]) await organizer.mutation(api.invitations.invite, { cohortId: id, email: "hustler@example.com", name: "Test Hustler" });
+    const hustler = await identity(t, "hustler@example.com");
+    const profile = (await hustler.mutation(api.users.ensureProfile, {}))!;
+    const answers = { building: "A tool for independent game developers.", outcomes: "Meet founders and get product feedback.", industries: ["Developer tools"], offering: "React prototypes and product reviews." };
+    for (const id of [cohortId, secondCohortId]) await hustler.mutation(api.onboarding.saveDraft, { cohortId: id, answers, step: 4 });
+    const proposal = await hustler.mutation(api.onboarding.useTemplates, { cohortId });
+    await hustler.mutation(api.onboarding.saveProposal, { cohortId, goals: templateGoals(answers, "2026-11-02", "2026-11-15"), expectedRevision: proposal.revision, confirm: true });
+    await t.run(async (ctx) => { await ctx.db.insert("missionGenerationLimits", { profileId: profile._id, count: 5, windowStart: Date.now(), lastAttempt: Date.now() }); });
+    await t.mutation(components.betterAuth.adapter.create, { input: { model: "account", data: { userId: profile.authUserId, providerId: "google", accountId: "test-google-account", createdAt: Date.now(), updatedAt: Date.now() } } });
+    // More than one page ensures deletion clears every session, not just the first.
+    for (let i = 0; i < 101; i++) await t.mutation(components.betterAuth.adapter.create, { input: { model: "session", data: { userId: profile.authUserId, token: crypto.randomUUID(), expiresAt: Date.now() + 60_000, createdAt: Date.now(), updatedAt: Date.now() } } });
+    await t.mutation(components.betterAuth.adapter.create, { input: { model: "verification", data: { identifier: profile.email, value: "test-verification", expiresAt: Date.now() + 60_000, createdAt: Date.now(), updatedAt: Date.now() } } });
+
+    await expect(organizer.mutation(api.users.deleteUser, { profileId: profile._id, confirmationEmail: "wrong@example.com" })).rejects.toThrow("Type this user’s email");
+    expect(await t.run((ctx) => ctx.db.get(profile._id))).not.toBeNull();
+    await organizer.mutation(api.users.deleteUser, { profileId: profile._id, confirmationEmail: "HUSTLER@example.com" });
+    for (const id of [cohortId, secondCohortId]) {
+      const roster = await organizer.query(api.cohorts.roster, { cohortId: id });
+      expect(roster.participants).toHaveLength(0);
+      expect(roster.invitations).toHaveLength(0);
+    }
+    expect(await t.run((ctx) => ctx.db.get(profile._id))).toBeNull();
+    expect(await t.run((ctx) => ctx.db.query("onboarding").collect())).toHaveLength(0);
+    expect(await t.run((ctx) => ctx.db.query("missionGenerationLimits").collect())).toHaveLength(0);
+    for (const model of ["session", "account"] as const) expect(await t.query(components.betterAuth.adapter.findOne, { model, where: [{ field: "userId", operator: "eq", value: profile.authUserId }] })).toBeNull();
+    expect(await t.query(components.betterAuth.adapter.findOne, { model: "user", where: [{ field: "_id", operator: "eq", value: profile.authUserId }] })).toBeNull();
+    expect(await t.query(components.betterAuth.adapter.findOne, { model: "verification", where: [{ field: "identifier", operator: "eq", value: profile.email }] })).toBeNull();
+    expect(await hustler.query(api.users.viewer, {})).toBeNull();
+    await expect(hustler.mutation(api.users.ensureProfile, {})).rejects.toThrow();
+    expect((await organizer.query(api.cohorts.list, {}))).toHaveLength(2);
+
+    await organizer.mutation(api.invitations.invite, { cohortId, email: profile.email, name: "Test Hustler" });
+    const freshHustler = await identity(t, profile.email);
+    const freshProfile = (await freshHustler.mutation(api.users.ensureProfile, {}))!;
+    expect(freshProfile._id).not.toBe(profile._id);
+    expect(freshProfile.authUserId).not.toBe(profile.authUserId);
+    expect(await freshHustler.query(api.onboarding.get, { cohortId })).toBeNull();
+    expect(await freshHustler.query(api.onboarding.required, {})).toBe(cohortId);
+  });
+
+  it("restricts deletion to organizers and protects organizer accounts", async () => {
+    const t = setup();
+    const organizer = await identity(t, "organizer@example.com");
+    const organizerProfile = (await organizer.mutation(api.users.ensureProfile, {}))!;
+    const cohortId = await organizer.mutation(api.cohorts.create, { name: "First chapter", description: "", startDate: "2026-11-02" });
+    await organizer.mutation(api.invitations.invite, { cohortId, email: "hustler@example.com", name: "" });
+    const hustler = await identity(t, "hustler@example.com");
+    const profile = (await hustler.mutation(api.users.ensureProfile, {}))!;
+    const args = { profileId: profile._id, confirmationEmail: profile.email };
+    await expect(t.mutation(api.users.deleteUser, args)).rejects.toThrow("verified Google");
+    await expect(hustler.mutation(api.users.deleteUser, args)).rejects.toThrow("Only organizers");
+    await expect(organizer.mutation(api.users.deleteUser, { profileId: organizerProfile._id, confirmationEmail: organizerProfile.email })).rejects.toThrow("Organizer accounts cannot be deleted");
+    vi.stubEnv("ORGANIZER_EMAILS", "organizer@example.com,second@example.com");
+    const second = await identity(t, "second@example.com");
+    const secondProfile = (await second.mutation(api.users.ensureProfile, {}))!;
+    await expect(organizer.mutation(api.users.deleteUser, { profileId: secondProfile._id, confirmationEmail: secondProfile.email })).rejects.toThrow("Organizer accounts cannot be deleted");
+    expect(await t.run((ctx) => ctx.db.get(profile._id))).not.toBeNull();
+    expect(await t.run((ctx) => ctx.db.get(secondProfile._id))).not.toBeNull();
+  });
+
   it("accepts an invitation once, isolates cohort data, and enforces revocation", async () => {
     const t = setup();
     const organizer = await identity(t, "organizer@example.com");

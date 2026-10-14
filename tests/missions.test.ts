@@ -40,8 +40,11 @@ afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 describe("Stage 2 missions", () => {
   it("resumes partial drafts, isolates owners/cohorts, and lets organizers read confirmed missions", async () => {
     const { t, hustler, organizer, profile, cohortId, otherCohort, participant } = await setup();
+    expect(await hustler.query(api.onboarding.required, {})).toBe(cohortId);
+    expect(await organizer.query(api.onboarding.required, {})).toBeNull();
     await hustler.mutation(api.onboarding.saveDraft, { cohortId, answers: { ...answers, offering: "" }, step: 3 });
     expect(await hustler.query(api.onboarding.get, { cohortId })).toMatchObject({ step: 3, answers: { offering: "" } });
+    expect(await hustler.query(api.onboarding.required, {})).toBe(cohortId);
     await expect(hustler.action(api.missions.generate, { cohortId })).rejects.toThrow("Complete all four");
     await expect(t.query(api.onboarding.get, { cohortId })).rejects.toThrow("verified Google");
     await expect(hustler.mutation(api.onboarding.saveDraft, { cohortId: otherCohort, answers, step: 0 })).rejects.toThrow("active membership");
@@ -53,12 +56,27 @@ describe("Stage 2 missions", () => {
     expect(result.source).toBe("template");
     expect(result.fallbackReason).toBe("unconfigured");
     expect(result.goals).toHaveLength(3);
+    expect(await hustler.query(api.onboarding.required, {})).toBe(cohortId);
     await hustler.mutation(api.onboarding.saveProposal, { cohortId, goals: result.goals, expectedRevision: result.revision, confirm: true });
+    expect(await hustler.query(api.onboarding.required, {})).toBeNull();
     expect((await organizer.query(api.onboarding.get, { cohortId, profileId: profile._id }))?.confirmedGoals).toEqual(result.goals);
     const membershipId = (await organizer.query(api.cohorts.roster, { cohortId })).participants.find((p) => p.profileId === profile._id)!._id;
     await organizer.mutation(api.cohorts.updateMembership, { membershipId, status: "revoked" });
     await expect(hustler.query(api.onboarding.get, { cohortId })).rejects.toThrow("active Philoxenia invitation");
     await expect(hustler.action(api.missions.generate, { cohortId })).rejects.toThrow("active Philoxenia invitation");
+  });
+
+  it("requires a new cohort’s mission while keeping completed cohorts out of the entry flow", async () => {
+    const { hustler, organizer, cohortId, otherCohort } = await setup();
+    await organizer.mutation(api.cohorts.update, { cohortId, name: "First chapter", description: "", startDate: "2026-10-25", status: "completed" });
+    expect(await hustler.query(api.onboarding.required, {})).toBeNull();
+    await organizer.mutation(api.invitations.invite, { cohortId: otherCohort, email: "hustler@example.com", name: "" });
+    await hustler.mutation(api.users.ensureProfile, {});
+    expect(await hustler.query(api.onboarding.required, {})).toBe(otherCohort);
+    await hustler.mutation(api.onboarding.saveDraft, { cohortId: otherCohort, answers, step: 4 });
+    const result = await hustler.mutation(api.onboarding.useTemplates, { cohortId: otherCohort });
+    await hustler.mutation(api.onboarding.saveProposal, { cohortId: otherCohort, goals: result.goals, expectedRevision: result.revision, confirm: true });
+    expect(await hustler.query(api.onboarding.required, {})).toBeNull();
   });
 
   it("validates measurable goals and overridden stay dates, preserving confirmed edits on regeneration", async () => {
