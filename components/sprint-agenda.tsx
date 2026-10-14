@@ -2,23 +2,53 @@
 
 import Link from "next/link";
 import { useRef } from "react";
-import { ArrowUpRight, CalendarDays, Check, Clock3, Flag, MapPin, Target, TriangleAlert, UsersRound } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Check, ChevronRight, Clock3, Flag, MapPin, Target, TriangleAlert, UsersRound } from "lucide-react";
 import { activityLabels, goalTotals, inStay, overlapping, type SprintData, type SprintEntry } from "@/lib/sprint";
 import { dateLabel } from "@/lib/cohort-dates";
 import { eventTimeLabel } from "@/lib/opportunities";
 import { sprintTimeRange } from "@/lib/sprint-time";
-import { ActionButton, Badge, IconTile, InlineError, Panel } from "./ui";
+import { ActionButton, Badge, InlineError } from "./ui";
 import { SprintModal } from "./sprint-editors";
 
 export function SprintEntryCard({ entry, onOpen }: { entry: SprintEntry; onOpen: () => void }) {
   const completed = entry.progress.status === "completed";
   const label = entry.cancelledAt ? "Cancelled" : completed ? entry.kind === "event" || entry.kind === "meeting" ? "Attended" : "Completed" : entry.progress.status === "skipped" ? "Skipped" : "Planned";
-  return <article className="min-w-0 rounded-2xl border border-line bg-white p-5 wrap-anywhere"><div className="flex items-start gap-3"><IconTile icon={entry.kind === "challenge" ? Flag : entry.startAt === undefined ? Check : CalendarDays} tone={completed ? "green" : "neutral"} /><div className="min-w-0 flex-1"><div className="mb-2 flex flex-wrap items-center gap-2"><span className="text-xs text-muted">{activityLabels[entry.kind]}</span>{entry.scope === "cohort" ? <span className="inline-flex items-center gap-1 text-xs text-forest"><UsersRound className="size-3" aria-hidden />Cohort</span> : null}<Badge tone={completed && !entry.cancelledAt ? "green" : "neutral"}>{label}</Badge></div><h3 className="text-base leading-6 font-medium tracking-tight text-foreground"><button onClick={onOpen} className="rounded-sm text-start underline-offset-4 hover:underline">{entry.title}</button></h3><p className="mt-2 text-xs leading-5 text-muted">{entry.startAt === undefined ? "Untimed" : sprintTimeRange(entry.startAt, entry.endAt!)}</p>{entry.location ? <p className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-muted"><MapPin className="mt-0.5 size-3.5 shrink-0" aria-hidden />{entry.location}</p> : null}<button onClick={onOpen} aria-label={`View activity ${entry.title}`} className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-sm text-sm font-medium text-forest underline-offset-4 hover:underline">View activity<ArrowUpRight className="size-3.5" aria-hidden /></button></div></div></article>;
+  const Icon = completed && !entry.cancelledAt ? Check : entry.kind === "challenge" ? Flag : entry.startAt === undefined ? Check : CalendarDays;
+  return <article className="group relative min-w-0 rounded-2xl border border-line bg-white transition-colors duration-150 hover:border-forest/25 hover:bg-soft/35 focus-within:border-forest/40">
+    <div className="flex items-start gap-3.5 p-4 @min-[640px]:gap-4 @min-[640px]:p-5">
+      <span className={`mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl ${completed && !entry.cancelledAt ? "bg-sage text-forest" : "bg-soft text-muted"}`}><Icon className="size-[18px]" strokeWidth={1.7} aria-hidden /></span>
+      <div className="min-w-0 flex-1 wrap-anywhere">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-5 text-muted"><span>{activityLabels[entry.kind]}</span>{entry.scope === "cohort" ? <span className="inline-flex items-center gap-1 text-forest"><UsersRound className="size-3" aria-hidden />Cohort</span> : null}</div>
+        <h3 className="mt-1.5 text-base leading-6 font-medium tracking-[-0.02em] text-foreground @min-[640px]:text-lg">
+          <button onClick={onOpen} aria-label={`View activity ${entry.title}`} className="text-start after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-3 focus-visible:after:outline-forest">{entry.title}</button>
+        </h3>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs leading-5 text-muted">
+          <span className="inline-flex items-start gap-1.5"><Clock3 className="mt-0.5 size-3.5 shrink-0" aria-hidden /><span>{entry.startAt === undefined ? "Flexible time" : sprintTimeRange(entry.startAt, entry.endAt!)}</span></span>
+          {entry.location ? <span className="inline-flex min-w-0 items-start gap-1.5"><MapPin className="mt-0.5 size-3.5 shrink-0" aria-hidden /><span>{entry.location}</span></span> : null}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 @min-[640px]:hidden"><Badge tone={completed && !entry.cancelledAt ? "green" : "neutral"}>{label}</Badge></div>
+      </div>
+      <div className="flex shrink-0 items-center gap-3"><span className="hidden @min-[640px]:inline-flex"><Badge tone={completed && !entry.cancelledAt ? "green" : "neutral"}>{label}</Badge></span><ChevronRight className="mt-1 size-4 text-muted/60 group-hover:text-forest rtl:rotate-180" aria-hidden /></div>
+    </div>
+  </article>;
 }
 
 export function SprintMissionPanel({ data, preview }: { data: SprintData; preview: boolean }) {
   const totals = goalTotals(data.entries, data.missionConfirmedAt);
-  return <Panel className="p-5 sm:p-6"><div className="flex items-center gap-3"><IconTile icon={Target} tone="green" /><h2 className="text-lg font-medium tracking-tight text-foreground">Mission progress</h2></div>{data.goals.length ? <><div className="mt-6 space-y-6">{data.goals.map((goal, index) => <div key={index} className="space-y-2"><div className="flex items-start justify-between gap-3"><h3 className="min-w-0 text-sm leading-6 font-medium wrap-anywhere text-foreground">{goal.title}</h3><span className="shrink-0 text-xs leading-6 tabular-nums text-forest">{totals[index]} / {goal.target}</span></div><progress aria-label={goal.title} value={Math.min(totals[index], goal.target)} max={goal.target} className="h-2 w-full appearance-none overflow-hidden rounded-full bg-soft [&::-webkit-progress-bar]:bg-soft [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-forest [&::-moz-progress-bar]:bg-forest" /><p className="text-xs leading-5 wrap-anywhere text-muted">{goal.metric}</p><p className="text-xs text-muted">By {dateLabel(goal.deadline, "MMM d")}</p></div>)}</div><p className="mt-5 text-xs leading-6 text-muted">Counts your reported contributions on completed activities linked to this confirmed mission.</p></> : <p className="mt-5 text-sm leading-6 text-muted">Confirm your three mission goals to link activities and track progress.</p>}{!data.readOnly ? <Link href={preview ? "/preview/onboarding" : "/onboarding"} className="mt-4 inline-flex min-h-9 items-center gap-2 text-sm font-medium text-forest underline-offset-4 hover:underline">Review mission<ArrowUpRight className="size-4" aria-hidden /></Link> : null}</Panel>;
+  return <aside aria-label="Mission progress" className="min-w-0 rounded-2xl bg-sage/55 p-5 @min-[640px]:p-6">
+    <div className="flex items-center gap-2.5"><Target className="size-[18px] text-forest" strokeWidth={1.7} aria-hidden /><h2 className="text-base font-medium tracking-tight text-foreground">Mission progress</h2></div>
+    {data.goals.length ? <>
+      <p className="mt-2 text-xs leading-5 text-muted">Turn your plans into progress on your three goals.</p>
+      <div className="mt-6 space-y-6">{data.goals.map((goal, index) => <div key={index}>
+        <h3 className="text-sm leading-5 font-medium wrap-anywhere text-foreground">{goal.title}</h3>
+        <div className="mt-2.5 flex items-center justify-between gap-3 text-xs leading-5 text-muted"><span className="min-w-0 wrap-anywhere">{goal.metric}</span><span className="shrink-0 font-medium tabular-nums text-forest">{totals[index]} / {goal.target}</span></div>
+        <progress aria-label={goal.title} value={Math.min(totals[index], goal.target)} max={goal.target} className="mt-2 block h-1.5 w-full appearance-none overflow-hidden rounded-full bg-forest/10 [&::-webkit-progress-bar]:bg-forest/10 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-forest [&::-moz-progress-bar]:bg-forest" />
+        <p className="mt-2 text-[11px] leading-5 text-muted">By {dateLabel(goal.deadline, "MMM d")}</p>
+      </div>)}</div>
+      <p className="mt-6 border-t border-forest/10 pt-4 text-xs leading-5 text-muted">Progress counts contributions you report on completed, linked activities.</p>
+    </> : <div className="mt-4"><h3 className="text-sm font-medium text-foreground">Give your Sprint a direction</h3><p className="mt-2 text-sm leading-6 text-muted">Confirm your three mission goals, then link activities to track what moves forward.</p></div>}
+    {!data.readOnly ? <Link href={preview ? "/preview/onboarding" : "/onboarding"} className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-forest/15 bg-white/75 px-3 text-xs font-medium text-forest hover:bg-white">Review mission<ArrowUpRight className="size-3.5" aria-hidden /></Link> : null}
+  </aside>;
 }
 
 export function ActivityDetails({ entry, data, error, busy, onClose, onEdit, onProgress, onOutcome, onRemove, onRestore, onExport }: {

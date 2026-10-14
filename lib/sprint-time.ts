@@ -3,7 +3,9 @@ import { SF_TIMEZONE } from "./cohort-dates";
 
 const timeLabel = new Intl.DateTimeFormat("en-US", { timeZone: SF_TIMEZONE, hour: "numeric", minute: "2-digit", timeZoneName: "short" });
 export function sprintTimeRange(startAt: number, endAt: number) {
-  return `${eventTimeLabel(startAt)} – ${sfCalendarDate(startAt) === sfCalendarDate(endAt) ? timeLabel.format(endAt) : eventTimeLabel(endAt)}`;
+  return sfCalendarDate(startAt) === sfCalendarDate(endAt)
+    ? `${timeLabel.format(startAt)} – ${timeLabel.format(endAt)}`
+    : `${eventTimeLabel(startAt)} – ${eventTimeLabel(endAt)}`;
 }
 
 // SF repeats one hour when daylight saving ends. Preserve the chosen instant
