@@ -7,22 +7,16 @@ export function BrandMark({ className = "" }: { className?: string }) {
 
 export function SanFranciscoIllustration({ className = "" }: { className?: string }) {
   return <svg viewBox="0 0 500 360" fill="none" role="img" aria-label="An illustration of the Golden Gate Bridge and San Francisco hills" className={className}>
-    <defs><pattern id="sf-grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0v30" stroke="#ffffff" strokeOpacity=".05" /></pattern></defs>
-    <rect width="500" height="360" rx="24" fill="#041f14" />
-    <rect width="500" height="360" rx="24" fill="url(#sf-grid)" />
-    <circle cx="355" cy="100" r="47" fill="#d4a844" />
-    <circle cx="355" cy="100" r="65" stroke="#d4a844" strokeOpacity=".2" />
-    <path d="M0 225c56-50 92-23 149-42 69-24 108-8 158 17 63 32 119 11 193-28v188H0Z" fill="#133a2a" />
-    <path d="M0 290c61-25 94 18 152-1 89-30 169-6 224-15 42-6 85-28 124-33v119H0Z" fill="#1d4935" />
-    <path d="M0 315h500M20 331h460M40 347h420" stroke="#e7d9b3" strokeOpacity=".14" />
-    <g stroke="#ead5a3" strokeWidth="3"><path d="M45 247h410M137 246V132h18v114M345 246V132h18v114M134 154h24m184 0h24M134 172h24m184 0h24" />
+    <rect width="500" height="360" rx="18" fill="#f5f4f1" />
+    <circle cx="355" cy="100" r="43" fill="#d6b879" />
+    <circle cx="355" cy="100" r="62" stroke="#d6b879" strokeOpacity=".3" />
+    <path d="M60 85h60m-30-8h66m259 65h45m-30-8h50" stroke="#d9d5ca" strokeWidth="2" strokeLinecap="round" />
+    <path d="M0 225c56-50 92-23 149-42 69-24 108-8 158 17 63 32 119 11 193-28v188H0Z" fill="#e5e2da" />
+    <path d="M0 290c61-25 94 18 152-1 89-30 169-6 224-15 42-6 85-28 124-33v119H0Z" fill="#d3cebf" />
+    <path d="M20 315h460M40 331h420M60 347h380" stroke="#294d3e" strokeOpacity=".12" />
+    <g stroke="#49664b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M45 247h410M137 246V132h18v114M345 246V132h18v114M134 154h24m184 0h24M134 172h24m184 0h24" />
       <path d="M45 213c51-8 91-45 101-78 20 54 51 77 105 78s88-31 103-78c17 40 52 67 101 78" />
       <path d="M68 208v39m23-50v50m23-66v66m64-61v61m25-44v44m25-36v36m25-33v33m25-36v36m25-48v48m24-65v65m61-64v64m24-47v47m24-38v38" strokeWidth="1.5" />
     </g>
-    <path d="m51 51 8-8m-8 0 8 8" stroke="#d4a844" strokeWidth="1.5" />
-    <path d="M51 70h60" stroke="#d4a844" strokeOpacity=".5" />
-    <text x="49" y="92" fill="#d7e0d6" fontSize="10" letterSpacing="2.5" fontFamily="sans-serif">THE NEXT CHAPTER</text>
-    <text x="49" y="115" fill="#ffffff" fontSize="16" fontFamily="sans-serif">San Francisco, California</text>
-    <text x="49" y="335" fill="#d7e0d6" fontSize="9" letterSpacing="2" fontFamily="monospace">37.7749° N / 122.4194° W</text>
   </svg>;
 }

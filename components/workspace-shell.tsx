@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
-import { ArrowUpRight, CalendarDays, Compass, DoorOpen, House, LayoutDashboard, LogOut, MapPin, Menu, UsersRound, X, PanelLeftClose } from "lucide-react";
-import { Button } from "@heroui/react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { ArrowUpRight, CalendarDays, ChevronRight, Compass, DoorOpen, House, LayoutDashboard, LogOut, MapPin, Menu, PanelLeftClose, PanelLeftOpen, UsersRound, X, type LucideIcon } from "lucide-react";
+import { Button, Modal, Tooltip } from "@heroui/react";
 import { BrandMark } from "./brand";
 import { authClient } from "@/lib/auth-client";
 import { useWorkspace } from "./workspace-context";
@@ -17,16 +17,61 @@ const navigation = [
   { href: "/community", label: "Community", icon: UsersRound },
 ];
 
+const sidebarPreferenceKey = "philoxenia.sidebar-collapsed";
+const sidebarPreferenceEvent = "philoxenia-sidebar-change";
+const workspaceScrollbar = "scrollbar-thin [--scrollbar-thumb:var(--foreground)] [--scrollbar-track:transparent]";
+let sidebarFallback = false;
+let sidebarStorageAvailable = true;
+
+function getSidebarCollapsed() {
+  if (!sidebarStorageAvailable) return sidebarFallback;
+  try { return window.localStorage.getItem(sidebarPreferenceKey) === "true"; }
+  catch { return sidebarFallback; }
+}
+
+function subscribeSidebar(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(sidebarPreferenceEvent, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(sidebarPreferenceEvent, callback);
+  };
+}
+
+function toggleSidebar() {
+  sidebarFallback = !getSidebarCollapsed();
+  try { window.localStorage.setItem(sidebarPreferenceKey, String(sidebarFallback)); }
+  catch { sidebarStorageAvailable = false; }
+  window.dispatchEvent(new Event(sidebarPreferenceEvent));
+}
+
+function SidebarLink({ href, label, icon: Icon, active, compact, onNavigate }: { href: string; label: string; icon: LucideIcon; active: boolean; compact: boolean; onNavigate: () => void }) {
+  const className = `flex min-h-11 items-center gap-3 overflow-hidden rounded-xl px-3 text-sm transition-colors duration-150 ${active ? "bg-sage font-medium text-forest" : "text-muted hover:bg-white hover:text-foreground"}`;
+  return <Tooltip delay={0} closeDelay={0} isDisabled={!compact} shouldSkipAnimation><Tooltip.Trigger<"a"> role="link" aria-label={label} aria-current={active ? "page" : undefined} className={className} onClick={onNavigate} render={(props) => <Link {...props} href={href} />}><Icon className="size-[18px] shrink-0" strokeWidth={1.7} aria-hidden /><span aria-hidden={compact} className={`whitespace-nowrap transition-opacity duration-150 motion-reduce:transition-none ${compact ? "opacity-0" : "opacity-100"}`}>{label}</span></Tooltip.Trigger><Tooltip.Content placement="right" offset={12} className="rounded-lg border border-line bg-white px-3 py-2 text-xs text-foreground shadow-control">{label}</Tooltip.Content></Tooltip>;
+}
+
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const { preview, viewer } = useWorkspace();
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const collapsed = useSyncExternalStore(subscribeSidebar, getSidebarCollapsed, () => false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const active = pathname === "/preview" ? "/" : pathname;
-  const current = [...navigation, { href: "/organizer", label: "Command Center" }].find((item) => item.href === active)?.label ?? "Your workspace";
-  const name = viewer?.name ?? "Your workspace";
+  const current = [...navigation, { href: "/organizer", label: "Command Center" }].find((item) => item.href === active)?.label ?? "Workspace";
+
+  useEffect(() => {
+    if (panelRef.current) panelRef.current.scrollTop = 0;
+  }, [pathname]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => { if (desktop.matches) setMobileOpen(false); };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
 
   async function signOut() {
     setSigningOut(true);
@@ -39,30 +84,26 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     } catch { setSignOutError("Could not sign out. Try again."); setSigningOut(false); }
   }
 
-  return <div className="min-h-screen bg-canvas">
-    {mobileOpen ? <button className="fixed inset-0 z-40 bg-black/30 lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close navigation" /> : null}
-    <aside id="workspace-navigation" className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-forest px-5 py-7 text-white transition-transform lg:visible lg:translate-x-0 ${mobileOpen ? "visible translate-x-0" : "invisible -translate-x-full"}`}>
-      <Link href="/" className="mb-11 flex items-center gap-3 px-2" onClick={() => setMobileOpen(false)}>
-        <BrandMark className="size-10 text-gold" /><div><span className="block text-lg font-semibold tracking-tight">philoxenia<span className="ml-1 font-normal text-gold">os</span></span><span className="text-[9px] tracking-[0.2em] text-white/45 uppercase">By Hustle Hours</span></div>
-      </Link>
-      <p className="mb-3 px-3 text-[9px] tracking-[0.2em] text-white/35 uppercase">Your chapter</p>
-      <nav aria-label="Main navigation" className="space-y-1.5">
-        {navigation.map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={active === href ? "page" : undefined} onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] transition-colors ${active === href ? "bg-white/10 font-medium text-gold" : "text-white/65 hover:bg-white/5 hover:text-white"}`}><Icon className="size-[18px]" strokeWidth={1.6} aria-hidden />{label}{active === href ? <span className="ml-auto size-1.5 rounded-full bg-gold" /> : null}</Link>)}
-      </nav>
-      {preview || viewer?.isOrganizer ? <div className="mt-8 border-t border-white/10 pt-6"><p className="mb-3 px-3 text-[9px] tracking-[0.2em] text-white/35 uppercase">For organizers</p><Link href="/organizer" onClick={() => setMobileOpen(false)} aria-current={active === "/organizer" ? "page" : undefined} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] ${active === "/organizer" ? "bg-white/10 text-gold" : "text-white/65 hover:bg-white/5"}`}><LayoutDashboard className="size-[18px]" strokeWidth={1.6} aria-hidden />Command Center</Link></div> : null}
-      <div className="mt-auto pt-8"><div className="relative mb-6 overflow-hidden rounded-xl border border-white/10 p-4"><div className="absolute -right-7 -bottom-7 size-24 rounded-full border border-gold/25" /><MapPin className="mb-4 size-4 text-gold" aria-hidden /><p className="mb-1 text-[10px] tracking-[0.15em] text-white/40 uppercase">Next stop</p><p className="font-display text-2xl text-white">San Francisco.</p><p className="mt-2 text-xs text-white/50">14 days. Make them count.</p></div>
-        <div className="flex items-center gap-3 px-2"><span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gold/15 text-sm text-gold">{viewer?.name?.charAt(0).toUpperCase() ?? "P"}</span><div className="min-w-0 flex-1"><p className="truncate text-xs font-medium">{name}</p><p className="mt-1 text-[10px] text-white/40">{preview ? "Local preview" : viewer?.isOrganizer ? "Organizer" : "Hustler"}</p></div>
-          {!preview ? <Button isIconOnly variant="ghost" aria-label="Sign out" isDisabled={signingOut} onPress={signOut} className="size-8 min-w-0 text-white/60"><LogOut className="size-4" /></Button> : null}</div>
-        {signOutError ? <p role="alert" className="mt-2 text-xs text-red-200">{signOutError}</p> : null}
-      </div>
-      <Button isIconOnly variant="ghost" className="absolute top-7 right-3 text-white lg:hidden" aria-label="Close navigation" onPress={() => setMobileOpen(false)}><X className="size-4" /></Button>
-    </aside>
-    <div className="lg:ml-64">
-      <a href="#main-content" className="sr-only z-60 bg-white p-3 focus:not-sr-only focus:fixed focus:top-2 focus:left-2">Skip to content</a>
-      <header className="flex h-[76px] items-center justify-between gap-4 border-b border-line bg-white/75 px-5 sm:px-9 lg:px-11"><div className="flex items-center gap-3"><Button isIconOnly variant="ghost" className="lg:hidden" aria-label="Open navigation" onPress={() => setMobileOpen(true)}><Menu className="size-5" /></Button><PanelLeftClose className="hidden size-4 text-muted/50 lg:block" aria-hidden /><span className="hidden text-xs text-muted/50 sm:inline">Workspace</span><span className="hidden text-xs text-muted/35 sm:inline">/</span><span className="text-xs font-medium text-forest">{current}</span></div><div className="flex items-center gap-4"><span className="hidden items-center gap-2 text-[11px] text-muted sm:inline-flex"><span className="size-1.5 rounded-full bg-gold" />San Francisco · Pacific Time</span><a href="https://philoxenia.hustlehours.com/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[11px] font-medium text-forest">About Philoxenia<ArrowUpRight className="size-3.5" aria-hidden /></a></div></header>
-      {preview ? <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gold/20 bg-gold/8 px-5 py-2.5 text-[11px] text-[#76581b] sm:px-9 lg:px-11"><span>Workspace preview · Sample cohort. Changes are disabled.</span><Link href="/sign-in" className="inline-flex items-center gap-1 font-semibold hover:underline">Sign in to your account<ArrowUpRight className="size-3" aria-hidden /></Link></div> : null}
-      <main id="main-content" className="mx-auto max-w-[1500px] px-5 py-8 sm:px-9 sm:py-10 lg:px-11">{children}</main>
-      <footer className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-2 px-5 py-6 text-[10px] text-muted/60 sm:px-9 lg:px-11"><span>Philoxenia OS · Built for the builders.</span><span>Open a door. Start a chapter.</span></footer>
+  const sidebar = (compact: boolean) => <>
+    <Link href="/" aria-label="Philoxenia home" className="mb-8 flex min-h-10 items-center gap-2.5 overflow-hidden px-2" onClick={() => setMobileOpen(false)}><BrandMark className="size-8 shrink-0 text-forest" /><span aria-hidden={compact} className={`text-lg font-semibold tracking-[-0.04em] whitespace-nowrap text-foreground transition-opacity duration-150 motion-reduce:transition-none ${compact ? "opacity-0" : "opacity-100"}`}>philoxenia<span className="ms-1 font-normal text-muted">os</span></span></Link>
+    <nav aria-label="Main navigation" className="space-y-1">{navigation.map((item) => <SidebarLink key={item.href} {...item} active={active === item.href} compact={compact} onNavigate={() => setMobileOpen(false)} />)}</nav>
+    {preview || viewer?.isOrganizer ? <div className="mt-6 border-t border-line pt-5"><SidebarLink href="/organizer" label="Command Center" icon={LayoutDashboard} active={active === "/organizer"} compact={compact} onNavigate={() => setMobileOpen(false)} /></div> : null}
+    <div className="mt-auto pt-8">
+      <div aria-hidden={compact} className={`grid transition-[grid-template-rows,opacity,margin-bottom] duration-200 ease-ui motion-reduce:transition-none ${compact ? "mb-0 grid-rows-[0fr] opacity-0" : "mb-5 grid-rows-[1fr] opacity-100"}`}><div className="min-h-0 overflow-hidden"><div className="rounded-2xl bg-white/80 p-4 whitespace-nowrap"><MapPin className="mb-3 size-[18px] text-forest" strokeWidth={1.7} aria-hidden /><p className="text-sm font-medium text-foreground">San Francisco</p><p className="mt-1 text-xs leading-5 text-muted">Two weeks of possibility.</p></div></div></div>
+      <div className={`flex gap-3 px-1 py-2 ${compact ? "flex-col items-start" : "items-center"}`}><span aria-label={viewer?.name ?? "Workspace preview"} role="img" className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-white text-sm font-medium text-forest">{viewer?.name?.charAt(0).toUpperCase() ?? "P"}</span>{!compact ? <div className="min-w-0 flex-1"><p className="text-sm font-medium wrap-anywhere text-foreground">{viewer?.name ?? "Workspace preview"}</p><p className="mt-0.5 text-xs text-muted">{preview ? "Local preview" : viewer?.isOrganizer ? "Organizer" : "Hustler"}</p></div> : null}{!preview ? <Tooltip delay={0} isDisabled={!compact}><Button isIconOnly variant="ghost" aria-label="Sign out" isDisabled={signingOut} onPress={signOut} className="size-9 min-w-0 text-muted"><LogOut className="size-4" /></Button><Tooltip.Content placement="right" offset={12}>Sign out</Tooltip.Content></Tooltip> : null}</div>
+      {signOutError ? <p role="alert" className="mt-2 text-xs text-red-800">{signOutError}</p> : null}
+    </div>
+  </>;
+
+  return <div className="flex h-dvh overflow-hidden bg-soft">
+    <aside id="desktop-sidebar" aria-label="Workspace sidebar" data-state={collapsed ? "collapsed" : "expanded"} className={`z-30 hidden h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 py-5 transition-[width] duration-200 ease-ui motion-reduce:transition-none lg:flex ${workspaceScrollbar} ${collapsed ? "w-18" : "w-60"}`}>{sidebar(collapsed)}</aside>
+    <Modal isOpen={mobileOpen} onOpenChange={setMobileOpen}><Modal.Backdrop className="lg:hidden"><Modal.Container placement="top" className="fixed inset-y-0 start-0 m-0 h-dvh w-72 max-w-[calc(100vw-24px)] p-0"><Modal.Dialog id="workspace-navigation" aria-label="Workspace navigation" className={`flex h-dvh flex-col overflow-y-auto rounded-none bg-soft px-4 py-7 ${workspaceScrollbar}`}><Modal.CloseTrigger aria-label="Close navigation" className="absolute end-3 top-3"><X className="size-4" aria-hidden /></Modal.CloseTrigger>{sidebar(false)}</Modal.Dialog></Modal.Container></Modal.Backdrop></Modal>
+    <div ref={panelRef} role="region" aria-label="Workspace content" className={`min-h-0 min-w-0 flex-1 scroll-pt-16 overflow-y-auto overscroll-y-contain bg-white [scrollbar-gutter:stable] lg:my-2 lg:me-2 lg:rounded-[20px] ${workspaceScrollbar}`}>
+      <a href="#main-content" className="sr-only z-60 rounded-xl bg-white p-3 focus:not-sr-only focus:fixed focus:start-2 focus:top-2">Skip to content</a>
+      <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between gap-4 border-b border-line/70 bg-white px-5 sm:px-6"><div className="flex min-w-0 items-center gap-3"><Tooltip delay={0} shouldSkipAnimation><Button isIconOnly variant="ghost" className="hidden size-9 min-w-0 shrink-0 text-muted lg:inline-flex" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} aria-expanded={!collapsed} aria-controls="desktop-sidebar" onPress={toggleSidebar}>{collapsed ? <PanelLeftOpen className="size-[18px]" aria-hidden /> : <PanelLeftClose className="size-[18px]" aria-hidden />}</Button><Tooltip.Content placement="bottom">{collapsed ? "Expand sidebar" : "Collapse sidebar"}</Tooltip.Content></Tooltip><Button isIconOnly variant="ghost" className="shrink-0 lg:hidden" aria-label="Open navigation" aria-haspopup="dialog" aria-expanded={mobileOpen} aria-controls={mobileOpen ? "workspace-navigation" : undefined} onPress={() => setMobileOpen(true)}><Menu className="size-5" /></Button><span className="hidden text-sm text-muted sm:inline">Workspace</span><ChevronRight className="hidden size-3.5 text-muted/60 sm:block" aria-hidden /><span className="text-sm text-foreground">{current}</span></div><a href="https://philoxenia.hustlehours.com/" target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-2 text-xs text-muted underline-offset-4 hover:text-foreground hover:underline">About Philoxenia<ArrowUpRight className="size-3.5" aria-hidden /></a></header>
+      {preview ? <div className="mx-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line py-2.5 text-xs leading-5 text-muted sm:mx-6"><span>Workspace preview · Sample cohort. Changes are disabled.</span><Link href="/sign-in" className="inline-flex items-center gap-1.5 rounded-sm font-medium text-forest underline-offset-4 hover:underline">Sign in to your account<ArrowUpRight className="size-3.5" aria-hidden /></Link></div> : null}
+      <main id="main-content" tabIndex={-1} className="px-5 py-8 sm:px-6 lg:mx-3 lg:mt-4"><div className="mx-auto w-full max-w-[1200px]">{children}</div></main>
+      <footer className="mx-auto max-w-[1280px] px-5 py-6 text-xs text-muted sm:px-6">Philoxenia OS <span className="mx-1 text-muted/50">·</span> By Hustle Hours</footer>
     </div>
   </div>;
 }

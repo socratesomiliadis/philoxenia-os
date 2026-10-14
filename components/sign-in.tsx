@@ -8,7 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { authClient } from "@/lib/auth-client";
 import { backendConfigured } from "./providers";
 import { BrandMark, SanFranciscoIllustration } from "./brand";
-import { ActionButton, InlineError } from "./ui";
+import { ActionButton, IconTile, InlineError } from "./ui";
 
 export function SignInScreen() {
   return backendConfigured ? <ConnectedSignIn /> : <SignInContent ready={false} />;
@@ -29,7 +29,7 @@ function SignInContent({ ready, checking = false }: { ready: boolean; checking?:
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has("error")) {
       // Do not reflect arbitrary provider errors or query strings into the UI.
-      Promise.resolve().then(() => setError("Google sign-in was not completed. Please try again."));
+      Promise.resolve().then(() => setError("Google sign-in was not completed. Try again."));
     }
   }, []);
 
@@ -38,26 +38,25 @@ function SignInContent({ ready, checking = false }: { ready: boolean; checking?:
     try {
       const result = await authClient.signIn.social({ provider: "google", callbackURL: "/", errorCallbackURL: "/sign-in?error=google" });
       if (result.error) throw new Error(result.error.message);
-    } catch { setError("We couldn't connect to Google. Please try again."); setBusy(false); }
+    } catch { setError("Unable to connect to Google. Check your connection and try again."); setBusy(false); }
   }
 
-  return <main className="grid min-h-screen bg-canvas lg:grid-cols-2">
-    <section className="relative flex flex-col justify-between overflow-hidden bg-forest p-8 text-white sm:p-14 lg:p-16">
-      <Link href="https://philoxenia.hustlehours.com/" className="flex items-center gap-3"><BrandMark className="size-11 text-gold" /><div><p className="text-xl font-semibold">philoxenia<span className="ml-1 font-normal text-gold">os</span></p><p className="mt-1 text-[9px] tracking-[0.2em] text-white/50 uppercase">By Hustle Hours</p></div></Link>
-      <div className="relative z-10 my-12 max-w-lg"><p className="mb-6 text-xs tracking-[0.2em] text-gold uppercase">The door is open.</p><h1 className="font-display text-5xl leading-[1.08] tracking-tight sm:text-6xl xl:text-7xl">Big ambitions.<br />A place to begin.</h1><p className="mt-6 max-w-sm text-sm leading-7 text-white/60">Two weeks in San Francisco. A community in your corner. Make room for what happens next.</p></div>
-      <SanFranciscoIllustration className="w-full max-w-lg" />
-      <p className="mt-8 text-[10px] text-white/40">Open your home. Your network. Your time.</p>
+  return <main className="grid min-h-dvh bg-white lg:grid-cols-2">
+    <section className="relative flex min-w-0 flex-col justify-between bg-canvas p-7 sm:p-12 lg:p-14 xl:p-20">
+      <Link href="https://philoxenia.hustlehours.com/" className="flex w-fit items-center gap-2.5"><BrandMark className="size-9 text-forest" /><span className="text-xl font-semibold tracking-tight text-foreground">philoxenia<span className="ms-1 font-normal text-muted">os</span></span></Link>
+      <div className="my-12 max-w-lg lg:my-16"><h1 className="text-4xl leading-[1.12] font-medium tracking-[-0.045em] text-foreground sm:text-5xl xl:text-6xl">Big ambitions.<br /><span className="text-forest">A place to begin.</span></h1><p className="mt-6 max-w-sm text-sm leading-7 text-muted">Two weeks in San Francisco. A community in your corner. Make room for what comes next.</p></div>
+      <SanFranciscoIllustration className="hidden w-full max-w-lg rounded-[24px] bg-warm lg:block" />
+      <p className="mt-8 hidden text-xs text-muted lg:block">Philoxenia by Hustle Hours</p>
     </section>
-    <section className="flex flex-col justify-center px-7 py-14 sm:px-14 lg:px-20 xl:px-28">
-      <div className="mx-auto w-full max-w-md"><p className="mb-4 text-[10px] font-medium tracking-[0.18em] text-muted uppercase">Your Philoxenia workspace</p><h2 className="font-display text-4xl text-forest sm:text-5xl">Welcome, Hustler.</h2><p className="mt-4 mb-9 text-sm leading-7 text-muted">Your next chapter starts with a hello. Sign in with the Google account your organizer invited.</p>
-        <ActionButton onPress={signIn} busy={busy} isDisabled={!ready} className="w-full border border-line bg-white text-forest"><GoogleIcon />{checking ? "Checking sign-in…" : ready ? "Continue with Google" : "Google sign-in is not connected yet"}</ActionButton>
+    <section className="flex min-w-0 flex-col justify-center px-7 py-12 sm:px-14 lg:px-16 xl:px-24">
+      <div className="mx-auto w-full max-w-sm"><h2 className="text-3xl font-medium tracking-[-0.04em] text-foreground sm:text-4xl">Welcome, Hustler.</h2><p className="mt-3 mb-7 text-sm leading-7 text-muted">Sign in with the Google account your organizer invited.</p>
+        <ActionButton onPress={signIn} busy={busy} isDisabled={!ready} appearance="secondary" className="w-full px-3 text-sm"><GoogleIcon />{checking ? "Checking sign-in…" : ready ? "Continue with Google" : "Google sign-in is not connected yet"}</ActionButton>
         <div className="mt-4"><InlineError message={error} /></div>
-        <p className="mt-5 flex items-center justify-center gap-2 text-[11px] text-muted"><ShieldCheck className="size-3.5" aria-hidden />Invite-only. Just your community.</p>
-        {!ready && !checking ? <p className="mt-7 rounded-xl border border-line bg-white p-4 text-xs leading-6 text-muted">Your workspace is being connected. An organizer will let you know when sign-in is ready.</p> : null}
-        <div className="my-10 h-px bg-line" />
-        <div className="space-y-5">{[{ icon: Compass, title: "Find your kind of opportunity", detail: "The right events, people, and places." }, { icon: CalendarDays, title: "Give your 14 days direction", detail: "A personal mission and a Sprint to match." }, { icon: DoorOpen, title: "Let the community open doors", detail: "Support from people who were once in your shoes." }].map(({ icon: Icon, title, detail }) => <div key={title} className="flex gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-forest/5"><Icon className="size-4 text-forest" aria-hidden /></span><div><p className="text-xs font-medium text-forest">{title}</p><p className="mt-1 text-[11px] text-muted">{detail}</p></div></div>)}</div>
-        {process.env.NODE_ENV === "development" ? <Link href="/preview" className="mt-10 inline-flex items-center gap-2 text-xs text-muted hover:text-forest"><ArrowLeft className="size-3.5" aria-hidden />Explore the local preview</Link> : null}
-        <a href="https://philoxenia.hustlehours.com/" target="_blank" rel="noopener noreferrer" className="mt-8 flex items-center gap-1 text-[11px] text-muted">Not part of Philoxenia yet? Meet the program<ArrowUpRight className="size-3" aria-hidden /></a>
+        <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted"><ShieldCheck className="size-4" aria-hidden />Invite-only. Just your community.</p>
+        {!ready && !checking ? <p className="mt-6 rounded-xl bg-soft/70 p-4 text-sm leading-6 text-muted">Your workspace is being connected. Your organizer will let you know when sign-in is ready.</p> : null}
+        <div className="mt-9 space-y-5">{[{ icon: Compass, title: "Find your opportunities", detail: "The right events, people, and places." }, { icon: CalendarDays, title: "Plan your two weeks", detail: "A personal mission and a Sprint to match." }, { icon: DoorOpen, title: "Open a door", detail: "Advice and introductions from alumni." }].map(({ icon, title, detail }) => <div key={title} className="flex gap-3"><IconTile icon={icon} /><div><p className="text-sm font-medium text-foreground">{title}</p><p className="mt-1 text-xs leading-5 text-muted">{detail}</p></div></div>)}</div>
+        <div className="mt-9 flex flex-col items-start gap-5">{process.env.NODE_ENV === "development" ? <Link href="/preview" className="inline-flex items-center gap-2 rounded-sm text-sm text-muted underline-offset-4 hover:text-forest hover:underline"><ArrowLeft className="size-4" aria-hidden />Explore the local preview</Link> : null}
+        <a href="https://philoxenia.hustlehours.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-sm text-xs text-muted underline-offset-4 hover:text-foreground hover:underline">Meet the Philoxenia program<ArrowUpRight className="size-3.5" aria-hidden /></a></div>
       </div>
     </section>
   </main>;

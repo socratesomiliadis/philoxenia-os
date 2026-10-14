@@ -2,23 +2,43 @@
 @import "@heroui/styles";
 
 :root {
-  --background: #f7f8f4;
-  --foreground: #041f14;
-  --accent: #041f14;
+  --background: #efefee;
+  --foreground: #242622;
+  --accent: #294d3e;
   --accent-foreground: #ffffff;
-  --focus: #d4a844;
+  --focus: #294d3e;
+  --surface: #ffffff;
+  --surface-foreground: #242622;
+  --default: #f5f4f1;
+  --default-foreground: #242622;
+  --muted: #686d65;
+  --border: #e4e1da;
+  --field-background: #f5f4f1;
+  --field-foreground: #242622;
+  --field-border: #dedbd2;
+  --radius: 0.75rem;
 }
 
 @theme inline {
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --color-forest: #041f14;
-  --color-gold: #d4a844;
-  --color-canvas: #f7f8f4;
-  --color-muted: #7a837c;
-  --color-line: #e6e9e1;
-  --font-display: var(--font-philoxenia-display);
+  --color-forest: #294d3e;
+  --color-gold: #b18b44;
+  --color-canvas: var(--background);
+  --color-muted: #686d65;
+  --color-line: #e4e1da;
+  --color-soft: #f5f4f1;
+  --color-sage: #e8eee7;
+  --color-warm: #ebe8e1;
+  --color-stone: #d3cebf;
+  --shadow-panel: 0 0 0 0 transparent;
+  --shadow-control: 0 1px 2px rgb(36 38 34 / 0.06);
+  --ease-ui: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 body {
@@ -27,9 +47,9 @@ body {
   font-family: var(--font-geist-sans), sans-serif;
 }
 
-::selection { background: #d4a84455; }
+::selection { background: #dbe5d7; }
 
-:focus-visible { outline: 2px solid #d4a844; outline-offset: 4px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
