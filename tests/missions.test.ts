@@ -102,6 +102,7 @@ describe("Stage 2 missions", () => {
     vi.stubEnv("GROQ_API_KEY", "test-only-key");
     const clock = vi.spyOn(Date, "now");
     const start = Date.now();
+    clock.mockReturnValue(start);
     await hustler.mutation(api.onboarding.saveDraft, { cohortId, answers, step: 4 });
     generateText.mockRejectedValueOnce(new Error("quota or timeout"));
     const result = await hustler.action(api.missions.generate, { cohortId });

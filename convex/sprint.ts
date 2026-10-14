@@ -172,6 +172,10 @@ export const removeActivity = mutation({
     ]);
     for (const item of progress) await ctx.db.delete(item._id);
     for (const item of outcomes) await ctx.db.patch(item._id, { activityId: undefined });
+    if (activity.supportRequestId) {
+      const request = await ctx.db.get(activity.supportRequestId);
+      if (request?.activityId === activity._id) await ctx.db.patch(request._id, { activityId: undefined, revision: request.revision + 1, updatedAt: Date.now() });
+    }
     await ctx.db.delete(activity._id);
   },
 });

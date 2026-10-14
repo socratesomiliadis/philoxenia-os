@@ -4,6 +4,10 @@ import type { FunctionArgs } from "convex/server";
 import { components } from "./_generated/api";
 import { authComponent } from "./auth";
 import { isOrganizerEmail, requireMember, requireOrganizer } from "./access";
+import { communityFields } from "./openDoorsValidators";
+import { profileSchema } from "../lib/open-doors";
+import { deleteSupportData } from "./openDoors";
+import { notify } from "./notifications";
 
 export const viewer = query({
   args: {},
@@ -43,6 +47,7 @@ export const ensureProfile = mutation({
       if (membership) await ctx.db.patch(membership._id, { status: "active" });
       else await ctx.db.insert("memberships", { profileId, cohortId: invitation.cohortId, status: "active" });
       await ctx.db.patch(invitation._id, { status: "accepted", acceptedBy: profileId });
+      await notify(ctx, profileId, "Your cohort invitation has been accepted. Welcome to Philoxenia.");
     }
     profile = await ctx.db.get(profileId);
     return profile;
@@ -55,10 +60,19 @@ export const community = query({
     await requireMember(ctx);
     const profiles = await ctx.db.query("profiles").collect();
     const activeMemberships = (await ctx.db.query("memberships").collect()).filter((m) => m.status === "active");
+    const cohorts = await ctx.db.query("cohorts").collect();
     return profiles.filter((p) => !p.suspended && (p.isAlumni || isOrganizerEmail(p.email) || activeMemberships.some((m) => m.profileId === p._id)))
-      .map((p) => ({ _id: p._id, name: p.name, image: p.image, isAlumni: p.isAlumni, isOrganizer: isOrganizerEmail(p.email) }));
+      .map((p) => ({ _id: p._id, name: p.name, image: p.image, isAlumni: p.isAlumni, isOrganizer: isOrganizerEmail(p.email), community: p.community,
+        cohorts: activeMemberships.filter((m) => m.profileId === p._id).flatMap((m) => { const cohort = cohorts.find((c) => c._id === m.cohortId); return cohort ? [{ name: cohort.name, status: cohort.status }] : []; }) }));
   },
 });
+
+export const saveCommunity = mutation({ args: { input: v.object(communityFields) }, handler: async (ctx, { input }) => {
+  const { profile } = await requireMember(ctx);
+  const parsed = profileSchema.safeParse(input);
+  if (!parsed.success) throw new ConvexError(parsed.error.issues[0].message);
+  await ctx.db.patch(profile._id, { community: parsed.data });
+} });
 
 export const setSuspended = mutation({
   args: { profileId: v.id("profiles"), suspended: v.boolean() },
@@ -119,6 +133,11 @@ export const deleteUser = mutation({
     }
     await ctx.runMutation(components.betterAuth.adapter.deleteOne, { input: { model: "user", where: [{ field: "_id", operator: "eq", value: profile.authUserId }] } });
     const related = new Map([...memberships, ...onboarding, ...limits, ...invitations, ...acceptedInvitations, ...authEmailInvitations, ...bookmarks, ...sprintActivities, ...sprintProgress, ...sprintOutcomes].map((doc) => [doc._id, doc]));
+    await deleteSupportData(ctx, profile._id);
+    for (const invitation of [...invitations, ...acceptedInvitations, ...authEmailInvitations]) {
+      const deliveries = await ctx.db.query("emailDeliveries").withIndex("by_invitation", (q) => q.eq("invitationId", invitation._id)).collect();
+      for (const delivery of deliveries) await ctx.db.delete(delivery._id);
+    }
     for (const id of related.keys()) await ctx.db.delete(id);
     await ctx.db.delete(profile._id);
     return { email: profile.email };

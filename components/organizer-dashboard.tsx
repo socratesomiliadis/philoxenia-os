@@ -17,6 +17,7 @@ import { SprintDashboard } from "./sprint-dashboard";
 import { SprintModal } from "./sprint-editors";
 import { dateRangeLabel, sprintDates } from "@/lib/cohort-dates";
 import { useModalNotifications } from "./notification-context";
+import { OpenDoors } from "./open-doors";
 
 type Roster = FunctionReturnType<typeof api.cohorts.roster>;
 type CohortInput = { name: string; description: string; startDate: string; status: Cohort["status"] };
@@ -44,6 +45,7 @@ function ConnectedOrganizer() {
   const revoke = useMutation(api.invitations.revoke);
   const updateMembership = useMutation(api.cohorts.updateMembership);
   const deleteUser = useMutation(api.users.deleteUser);
+  const graduate = useMutation(api.openDoors.graduate);
 
   if (!overview || (selected && !roster)) return <LoadingState label="Opening the Command Center…" />;
   return <OrganizerView cohorts={cohorts} selected={selected} roster={roster ?? { participants: [], invitations: [] }} overview={overview}
@@ -53,6 +55,7 @@ function ConnectedOrganizer() {
     onInvite={async (email, name) => { if (selected) await invite({ cohortId: selected._id, email, name }); }}
     onRevokeInvite={async (invitationId) => { await revoke({ invitationId }); }}
     onDeleteUser={async (profileId, confirmationEmail) => { await deleteUser({ profileId, confirmationEmail }); }}
+    onGraduate={async (profileId) => { if (selected) await graduate({ profileId, cohortId: selected._id }); }}
     onMembership={async (membershipId, status, startDateOverride, suspended) => { await updateMembership({ membershipId, status, startDateOverride, suspended }); }} />;
 }
 
@@ -68,10 +71,11 @@ type OrganizerViewProps = {
   onInvite?: (email: string, name: string) => Promise<void>;
   onRevokeInvite?: (id: Id<"invitations">) => Promise<void>;
   onDeleteUser?: (profileId: Id<"profiles">, confirmationEmail: string) => Promise<void>;
+  onGraduate?: (profileId: Id<"profiles">) => Promise<void>;
   onMembership?: (id: Id<"memberships">, status: "active" | "revoked", startDateOverride: string | undefined, suspended: boolean) => Promise<void>;
 };
 
-function OrganizerView({ preview = false, cohorts, selected, roster, overview, onSelect, onCreate, onUpdate, onInvite, onRevokeInvite, onMembership, onDeleteUser }: OrganizerViewProps) {
+function OrganizerView({ preview = false, cohorts, selected, roster, overview, onSelect, onCreate, onUpdate, onInvite, onRevokeInvite, onMembership, onDeleteUser, onGraduate }: OrganizerViewProps) {
   const [editor, setEditor] = useState<"create" | "edit" | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [managing, setManaging] = useState<Roster["participants"][number] | null>(null);
@@ -94,6 +98,14 @@ function OrganizerView({ preview = false, cohorts, selected, roster, overview, o
     catch { toast.danger("Could not copy the link. Share your app’s /sign-in address instead."); }
   }
 
+  async function graduateParticipant(participant: Roster["participants"][number]) {
+    if (!participant.profile || !onGraduate) return;
+    setBusyId(participant._id);
+    try { await onGraduate(participant.profile._id); toast.success("Participant graduated to alumni", { description: "Their cohort history is preserved. They can now offer support in Open Doors." }); }
+    catch (error) { toast.danger(errorMessage(error)); }
+    finally { setBusyId(null); }
+  }
+
   return <div className="@container"><div className="space-y-6 @min-[640px]:space-y-8">
     <PageHeading title="Command Center" description="Bring your cohort together. Manage people, plans, and opportunities." action={<ActionButton appearance={cohorts.length ? "secondary" : "primary"} onPress={() => setEditor("create")} isDisabled={preview}><Plus className="size-4" aria-hidden />New cohort</ActionButton>} />
     <OrganizerOverview overview={overview} />
@@ -104,10 +116,11 @@ function OrganizerView({ preview = false, cohorts, selected, roster, overview, o
           <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0 flex-1 basis-48"><div className="mb-3 flex flex-wrap items-center gap-2"><Badge tone={selected.status === "active" ? "green" : "neutral"}>{selected.status === "active" ? "In progress" : selected.status === "upcoming" ? "Upcoming" : "Completed"}</Badge>{preview ? <Badge>Sample cohort</Badge> : null}</div><h2 className="text-2xl leading-8 font-medium tracking-tight text-foreground wrap-anywhere">{selected.name}</h2>{selected.description ? <p className="mt-2 max-w-xl text-sm leading-6 text-muted wrap-anywhere">{selected.description}</p> : null}</div><ActionButton appearance="secondary" onPress={() => setEditor("edit")} isDisabled={preview}><Edit3 className="size-3.5" aria-hidden />Edit cohort</ActionButton></div>
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3"><div className="space-y-1 text-xs leading-5 text-muted"><p className="flex items-start gap-1.5 tabular-nums"><CalendarDays className="mt-0.5 size-3.5 shrink-0" aria-hidden />{dateRangeLabel(selected.startDate, selected.endDate)}</p><p>14 days · San Francisco time</p></div><OrganizerSprint cohort={selected} compact /></div>
         </section>
-        <CohortRoster key={selected._id} roster={roster} preview={preview} completed={selected.status === "completed"} busyId={busyId} search={search} onSearch={setSearch} onInvite={() => setInviteOpen(true)} onCopy={() => void copySignIn()} onManage={setManaging} onMission={setMissionParticipant} onSprint={setSprintParticipant} onRevoke={(id) => void revokeInvitation(id)} />
+        <CohortRoster key={selected._id} roster={roster} preview={preview} completed={selected.status === "completed"} busyId={busyId} search={search} onSearch={setSearch} onInvite={() => setInviteOpen(true)} onCopy={() => void copySignIn()} onManage={setManaging} onMission={setMissionParticipant} onSprint={setSprintParticipant} onRevoke={(id) => void revokeInvitation(id)} onGraduate={(participant) => void graduateParticipant(participant)} />
       </> : <section className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-line bg-soft/50 p-6 text-center"><CalendarDays className="mb-4 size-7 text-forest" strokeWidth={1.6} aria-hidden /><h2 className="text-2xl font-medium tracking-tight text-foreground">Create your first cohort</h2><p className="mt-3 max-w-sm text-sm leading-6 text-muted">Choose a name and arrival date. We’ll set the departure date for a 14-day stay.</p><ActionButton className="mt-5" isDisabled={preview} onPress={() => setEditor("create")}><Plus className="size-4" aria-hidden />Create your first cohort</ActionButton></section>}</div>
     </div>
     <OpportunityManager />
+    <OpenDoors organizer />
     {deleting?.profile && onDeleteUser ? <DeleteUserDialog name={deleting.profile.name} email={deleting.profile.email} onClose={() => setDeleting(null)} onDelete={async (confirmationEmail) => {
       await onDeleteUser(deleting.profile!._id, confirmationEmail);
       toast.success("User deleted", { description: `${deleting.profile!.email} was removed from all cohorts. You can invite this email again to start fresh.`, timeout: 7000 });

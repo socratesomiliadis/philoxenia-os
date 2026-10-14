@@ -14,6 +14,7 @@ async function sprintSession(page: Page, organizer = false) {
     user: { id: profile.authUserId, name: profile.name, email: profile.email },
     query: (path, args) => {
       switch (path) {
+        case "notifications:inbox": case "notifications:deliveries": case "openDoors:catalog": case "openDoors:ownOffers": case "openDoors:requests": return [];
         case "auth:readiness": return { google: true };
         case "users:viewer": return { name: profile.name, email: profile.email, profile, isOrganizer: organizer, participantCohortIds: [cohort._id], allowed: true, needsProvisioning: false };
         case "cohorts:list": return [cohort];
@@ -117,6 +118,46 @@ test("sample Sprint supports rescheduling, overlap acknowledgement, completion, 
   await expect(page.getByRole("heading", { name: "Sunday, Nov 15", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
+});
+
+test("progress keeps zero contributions and requires a fresh count when linking a different goal", async ({ page }) => {
+  await page.goto("/preview/sprint");
+  await page.getByRole("button", { name: "Reset sample Sprint", exact: true }).click();
+  await page.getByRole("button", { name: "View activity Prepare a two-minute product story", exact: true }).click();
+  const details = page.getByRole("dialog", { name: "Prepare a two-minute product story", exact: true });
+  const progress = page.getByRole("dialog", { name: "Progress & attendance", exact: true });
+  const contribution = progress.getByLabel(/^Contribution to this goal/);
+  const save = progress.getByRole("button", { name: "Save progress", exact: true });
+
+  await details.getByRole("button", { name: "Update progress", exact: true }).click();
+  await progress.getByLabel("Activity status", { exact: true }).selectOption("completed");
+  await contribution.fill("0");
+  await save.click();
+  await expect(progress).toHaveCount(0);
+  await details.getByRole("button", { name: "Update progress", exact: true }).click();
+  await expect(contribution).toHaveValue("0");
+  await save.click();
+  await expect(progress).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await expect(page.getByRole("progressbar", { name: sampleSprintData.goals[0].title, exact: true })).toHaveAttribute("value", "0");
+
+  await page.getByRole("button", { name: "View activity Prepare a two-minute product story", exact: true }).click();
+  await details.getByRole("button", { name: "Update progress", exact: true }).click();
+  await contribution.fill("3");
+  await save.click();
+  await expect(progress).toHaveCount(0);
+  await details.getByRole("button", { name: "Update progress", exact: true }).click();
+  await expect(contribution).toHaveValue("3");
+  await progress.getByLabel("Link to mission goal", { exact: true }).selectOption("1");
+  await expect(contribution).toHaveValue("0");
+  await contribution.fill("2");
+  await save.click();
+  await expect(progress).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await expect(page.getByRole("progressbar", { name: sampleSprintData.goals[0].title, exact: true })).toHaveAttribute("value", "0");
+  await expect(page.getByRole("progressbar", { name: sampleSprintData.goals[1].title, exact: true })).toHaveAttribute("value", "2");
 });
 
 test("authenticated opportunity additions persist, prevent duplicates, and support attendance retry and exports", async ({ page }) => {

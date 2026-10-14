@@ -12,6 +12,7 @@ test("organizer deletion requires the target email, supports cancel and retry, a
     user: { id: organizer.authUserId, name: organizer.name, email: organizer.email },
     query: (path) => {
       switch (path) {
+        case "notifications:inbox": case "notifications:deliveries": case "openDoors:catalog": case "openDoors:ownOffers": case "openDoors:requests": return [];
         case "auth:readiness": return { google: true };
         case "users:viewer": return { name: organizer.name, email: organizer.email, profile: organizer, isOrganizer: true, participantCohortIds: [], allowed: true, needsProvisioning: false };
         case "cohorts:list": return [cohort];

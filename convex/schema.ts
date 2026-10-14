@@ -3,13 +3,33 @@ import { v } from "convex/values";
 import { answersValidator, fallbackValidator, goalValidator, sourceValidator } from "./missionValidators";
 import { opportunityFields } from "./opportunityValidators";
 import { activityFields, progressFields, outcomeFields } from "./sprintValidators";
+import { offerFields, communityFields, requestStatus } from "./openDoorsValidators";
 
 export default defineSchema({
+  alumniOffers: defineTable({ ...offerFields, ownerId: v.id("profiles"), revision: v.number(), updatedAt: v.number() })
+    .index("by_published", ["published"]).index("by_owner", ["ownerId"]),
+  supportRequests: defineTable({
+    offerId: v.id("alumniOffers"), requesterId: v.id("profiles"), alumnusId: v.id("profiles"), cohortId: v.id("cohorts"),
+    goal: v.string(), fit: v.string(), offerSnapshot: v.object(offerFields), status: requestStatus,
+    response: v.optional(v.string()), alternative: v.optional(v.string()), revision: v.number(), updatedAt: v.number(),
+    activityId: v.optional(v.id("sprintActivities")), completedBy: v.optional(v.id("profiles")),
+  }).index("by_requester", ["requesterId"]).index("by_alumnus", ["alumnusId"])
+    .index("by_offer", ["offerId"]).index("by_requester_offer", ["requesterId", "offerId"]),
+  supportCoordination: defineTable({ requestId: v.id("supportRequests"), organizerId: v.id("profiles"), note: v.string(), updatedAt: v.number() })
+    .index("by_request", ["requestId"]),
+  notifications: defineTable({ profileId: v.id("profiles"), message: v.string(), requestId: v.optional(v.id("supportRequests")), createdAt: v.number(), readAt: v.optional(v.number()) })
+    .index("by_profile", ["profileId"]),
+  emailDeliveries: defineTable({
+    profileId: v.optional(v.id("profiles")), invitationId: v.optional(v.id("invitations")), requestId: v.optional(v.id("supportRequests")),
+    email: v.string(), message: v.string(), path: v.string(), status: v.union(v.literal("pending"), v.literal("sent"), v.literal("failed"), v.literal("disabled")),
+    attempts: v.number(), updatedAt: v.number(), error: v.optional(v.string()), providerId: v.optional(v.string()),
+  }).index("by_profile", ["profileId"]).index("by_invitation", ["invitationId"]).index("by_request", ["requestId"]),
   sprintActivities: defineTable({
     ...activityFields, cohortId: v.id("cohorts"), ownerId: v.optional(v.id("profiles")),
     scope: v.union(v.literal("personal"), v.literal("cohort")), createdBy: v.id("profiles"),
     revision: v.number(), updatedAt: v.number(), cancelledAt: v.optional(v.number()),
     opportunityId: v.optional(v.id("opportunities")), sourceUrl: v.optional(v.string()), sourceUpdatedAt: v.optional(v.number()),
+    supportRequestId: v.optional(v.id("supportRequests")),
   }).index("by_cohort_scope", ["cohortId", "scope"]).index("by_owner_cohort", ["ownerId", "cohortId"])
     .index("by_owner_cohort_opportunity", ["ownerId", "cohortId", "opportunityId"]),
   sprintProgress: defineTable({
@@ -44,6 +64,8 @@ export default defineSchema({
     image: v.optional(v.string()),
     isAlumni: v.boolean(),
     suspended: v.boolean(),
+    community: v.optional(v.object(communityFields)),
+    graduatedAt: v.optional(v.number()), graduatedBy: v.optional(v.id("profiles")),
   }).index("by_auth_user", ["authUserId"]).index("by_email", ["email"]),
   cohorts: defineTable({
     name: v.string(),

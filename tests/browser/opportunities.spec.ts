@@ -15,6 +15,7 @@ async function catalogSession(page: Page, organizer = false, initial: Opportunit
     user: { id: profile.authUserId, name: profile.name, email: profile.email },
     query: (path, args) => {
       switch (path) {
+        case "notifications:inbox": case "notifications:deliveries": case "openDoors:catalog": case "openDoors:ownOffers": case "openDoors:requests": return [];
         case "auth:readiness": return { google: true };
         case "users:viewer": return { name: profile.name, email: profile.email, profile, isOrganizer: organizer, participantCohortIds: [cohort._id], allowed: true, needsProvisioning: false };
         case "cohorts:list": return [cohort];

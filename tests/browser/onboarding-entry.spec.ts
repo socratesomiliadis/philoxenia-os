@@ -21,6 +21,7 @@ test("an invited sign-in provisions the profile, requires onboarding, resumes dr
     user: { id: profile.authUserId, email: profile.email, name: profile.name },
     query: (path) => {
       switch (path) {
+        case "notifications:inbox": case "notifications:deliveries": case "openDoors:catalog": case "openDoors:ownOffers": case "openDoors:requests": return [];
         case "auth:readiness": return { google: googleReady };
         case "users:viewer": return { name: profile.name, email: profile.email, profile: provisioned ? profile : null, isOrganizer: organizer, participantCohortIds: provisioned ? [cohort._id] : [], allowed: true, needsProvisioning: !provisioned };
         case "cohorts:list": return [cohort];

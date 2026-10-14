@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PreviewWorkspace } from "@/components/workspace-gateway";
 import { OrganizerDashboard } from "@/components/organizer-dashboard";
 import { CommunityPage } from "@/components/community";
-import { ComingSoon } from "@/components/coming-soon";
+import { OpenDoors } from "@/components/open-doors";
 import { LoadingState } from "@/components/ui";
 import { OpportunitiesDashboard } from "@/components/opportunities-dashboard";
 import { SprintDashboard } from "@/components/sprint-dashboard";
@@ -18,7 +18,7 @@ async function PreviewSection({ params }: { params: Promise<{ section: string }>
   const content = {
     organizer: <OrganizerDashboard />, community: <CommunityPage />,
     opportunities: <OpportunitiesDashboard />, sprint: <SprintDashboard />,
-    "open-doors": <ComingSoon feature="doors" />,
+    "open-doors": <OpenDoors />,
   }[section];
   if (!content) notFound();
   return <PreviewWorkspace>{content}</PreviewWorkspace>;

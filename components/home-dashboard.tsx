@@ -11,7 +11,7 @@ import { dateRangeLabel } from "@/lib/cohort-dates";
 const features = [
   { href: "/opportunities", title: "Opportunities", detail: "Find events, founders, and startups that fit what you’re building.", icon: Compass },
   { href: "/sprint", title: "14-day Sprint", detail: "Make a plan for your stay, one meaningful step at a time.", icon: CalendarDays },
-  { href: "/open-doors", title: "Open Doors", detail: "Alumni advice and introductions, coming soon.", icon: DoorOpen },
+  { href: "/open-doors", title: "Open Doors", detail: "Request alumni advice, reviews, and introductions.", icon: DoorOpen },
 ];
 
 export function HomeDashboard() {

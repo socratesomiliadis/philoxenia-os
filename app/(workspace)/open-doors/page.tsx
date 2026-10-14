@@ -1,3 +1,3 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { OpenDoors } from "@/components/open-doors";
 export const instant = false;
-export default function OpenDoorsPage() { return <ComingSoon feature="doors" />; }
+export default function OpenDoorsPage() { return <OpenDoors />; }

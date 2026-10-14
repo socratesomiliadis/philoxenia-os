@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation } from "./_generated/server";
 import { requireOrganizer } from "./access";
+import { queueEmail } from "./notifications";
 
 export const invite = mutation({
   args: { cohortId: v.id("cohorts"), email: v.string(), name: v.string() },
@@ -14,8 +15,10 @@ export const invite = mutation({
     const existing = await ctx.db.query("invitations").withIndex("by_email_cohort", (q) => q.eq("email", email).eq("cohortId", args.cohortId)).unique();
     if (existing && existing.status !== "revoked") throw new ConvexError("This email has already been invited to this cohort.");
     const data = { email, name: args.name.trim(), cohortId: args.cohortId, status: "pending" as const, invitedBy: profile._id };
-    if (existing) { await ctx.db.patch(existing._id, { ...data, acceptedBy: undefined }); return existing._id; }
-    return ctx.db.insert("invitations", data);
+    const invitationId = existing?._id ?? await ctx.db.insert("invitations", data);
+    if (existing) await ctx.db.patch(existing._id, { ...data, acceptedBy: undefined });
+    await queueEmail(ctx, { email, invitationId, message: `You’re invited to ${cohort.name} in Philoxenia OS. Sign in with this Google account to join.`, path: "/sign-in" });
+    return invitationId;
   },
 });
 
