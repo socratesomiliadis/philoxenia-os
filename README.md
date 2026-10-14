@@ -2,9 +2,9 @@
 
 The workspace for Philoxenia by Hustle Hours: two weeks of building, connecting, and opening doors in San Francisco.
 
-## Stages 1 and 2
+## Stages 1–3
 
-Implemented: responsive participant/organizer navigation, Google authentication through Better Auth + Convex, organizer bootstrap, cohort management, approved-email invitations, cohort access controls, participant date overrides, account suspension, and a private community directory. Stage 2 adds resumable onboarding and three editable, measurable mission goals per Hustler and cohort. Opportunity discovery, the Sprint planner, and Open Doors remain clearly labeled placeholders for later stages.
+Implemented: responsive participant/organizer navigation, Google authentication through Better Auth + Convex, organizer bootstrap, cohort management, approved-email invitations, cohort access controls, participant date overrides, account suspension, and a private community directory. Stage 2 adds resumable onboarding and three editable, measurable mission goals per Hustler and cohort. Stage 3 adds curated opportunity discovery, explained recommendations, private bookmarks, and organizer publishing. The Sprint planner and Open Doors request workflow remain placeholders for later stages.
 
 Stack: Next.js 16.4, React 19, HeroUI v3, Tailwind v4, Convex, Better Auth, and pnpm. Better Auth is pinned to the version supported by the Convex integration.
 
@@ -26,7 +26,7 @@ The backend CLI creates `.env.local`. `NEXT_PUBLIC_CONVEX_SITE_URL` must be the 
 
 For this initial build, an anonymous local Convex deployment was initialized and the backend organizer allowlist was set to `s.omiliadis@gmail.com`. No cloud project or Google OAuth client was created. The local backend authentication secret has already been generated securely; it is not committed.
 
-Until Google OAuth is configured, development routes show a clearly marked, read-only sample workspace. `/preview` is also available in development; it returns 404 in production. Preview never creates a session or authorizes backend access. Production shows the sign-in screen when configuration is incomplete.
+Until Google OAuth is configured, development routes show a clearly marked sample workspace. Onboarding and opportunity previews allow local-only interactions; organizer writes are disabled. `/preview` is also available in development; it returns 404 in production. Preview never creates a session or authorizes backend access. Production shows the sign-in screen when configuration is incomplete.
 
 ## Connect Convex and Google
 
@@ -86,6 +86,24 @@ Requests are limited transactionally to one per minute and five per hour per pro
 Drafts and missions are owned by the authenticated profile and cohort. Writes require an active membership, including for organizers participating as Hustlers. Access and stay dates are rechecked after generation; stale responses cannot overwrite newer edits or confirmed goals. When an organizer changes stay dates, review existing goal deadlines before confirming another version.
 
 For a development-only interactive sample, visit `/preview/onboarding`. Sample answers stay in the current tab; no AI call, account data, or auth session is created. The route returns 404 in production. Preview behavior is separate from backend persistence, which is covered by authenticated Convex tests.
+
+## Curated opportunities
+
+Open **Opportunities** to search events, startups, founders, and alumni offers. San Francisco is the default location; **Filters** includes the wider Bay Area (including SF), online, interests, event dates, and event cost. “Price not confirmed” is distinct from free. Event date and cost filters apply only to events; directories and offers remain visible. Event times display in San Francisco time, including the correct PST/PDT offset. Registration stays on the original platform.
+
+Recommendations use the selected cohort’s onboarding interests, categories inferred from its confirmed mission, individual stay dates, and organizer picks. Draft goal proposals are excluded. Listings explain the actual matching reasons in **View details**. No model or third-party service receives mission data for ranking. Members without a current cohort can still browse and bookmark the shared catalog.
+
+Bookmarks belong to the signed-in member across cohorts and survive refresh. **Saved** respects the current filters, including location. Archiving or reverting a listing to draft hides it from members while retaining bookmarks for a later republication. Deleting a participant also removes their bookmarks.
+
+In **Command Center → Manage opportunities**, use **Add opportunity** to save a draft or publish a listing. Required fields include the original source, location, interests, and details. Events also require a start time entered in SF time and a cost status. Organizers can edit, archive, or republish; conflicting edits require reopening the editor. Entries of the same type and canonical source URL are deduplicated, including tracking links. Drafts and archives are organizer-only; published listings are visible to approved members across cohorts.
+
+Founder and startup listings are public directory entries and do not imply an introduction, meeting, or visit. Alumni offers require a named provider, a specific support/request path, availability or capacity, and a request URL. Publishing requires the organizer to explicitly confirm the alumnus agreed to those details. Requests use that external path in Stage 3; the in-app approval and introduction workflow arrives in Stage 5.
+
+**Add curated starters** adds four real directory drafts without overwriting existing curation: [LangChain and Harrison Chase](https://www.langchain.com/about), [Supabase](https://www.ycombinator.com/companies/supabase/jobs), and [Replit](https://replit.com/careers). Primary sources were reviewed October 14, 2026; organizers should review current details before publishing. No live events or alumni availability are invented. The pilot catalog starts empty until an organizer publishes real entries. Automated event ingestion is Stage 6.
+
+For development, `/preview/opportunities` contains labeled illustrative events, companies, founders, and offers. Search, filtering, details, and temporary bookmarks work without an account; preview changes reset on leaving the page and never reach Convex. Organizer writes remain disabled in preview, and all preview routes return 404 in production. No production sample seed is run automatically. The catalog query uses indexed publication and bookmark reads and returns the small curated pilot catalog in one subscription; paginate/search server-side before expanding to automated feeds.
+
+Stage 3 backend checks cover publication visibility, organizer authorization, revoked/unverified/suspended members, bookmark isolation and deletion, cohort-specific recommendations, confirmed support paths, source deduplication, concurrent edits, idempotent curation, and SF date boundaries. Browser checks cover discovery on desktop/mobile, keyboard dismissal and focus restoration, authenticated bookmark retry/persistence, and organizer draft-to-publish-to-archive flows. Authenticated browser transport is isolated and mocked; backend authorization is exercised by Convex tests.
 
 ## Checks
 

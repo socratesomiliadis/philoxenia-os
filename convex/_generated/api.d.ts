@@ -16,6 +16,8 @@ import type * as invitations from "../invitations.js";
 import type * as missionValidators from "../missionValidators.js";
 import type * as missions from "../missions.js";
 import type * as onboarding from "../onboarding.js";
+import type * as opportunities from "../opportunities.js";
+import type * as opportunityValidators from "../opportunityValidators.js";
 import type * as users from "../users.js";
 
 import type {
@@ -33,6 +35,8 @@ declare const fullApi: ApiFromModules<{
   missionValidators: typeof missionValidators;
   missions: typeof missions;
   onboarding: typeof onboarding;
+  opportunities: typeof opportunities;
+  opportunityValidators: typeof opportunityValidators;
   users: typeof users;
 }>;
 

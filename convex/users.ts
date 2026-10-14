@@ -95,7 +95,7 @@ export const deleteUser = mutation({
     if (args.confirmationEmail.trim().toLowerCase() !== profile.email.toLowerCase()) {
       throw new ConvexError("Type this user’s email address to confirm deletion.");
     }
-    const [memberships, onboarding, limits, invitations, acceptedInvitations, authEmailInvitations] = await Promise.all([
+    const [memberships, onboarding, limits, invitations, acceptedInvitations, authEmailInvitations, bookmarks] = await Promise.all([
       ctx.db.query("memberships").withIndex("by_profile", (q) => q.eq("profileId", profile._id)).collect(),
       ctx.db.query("onboarding").withIndex("by_profile_cohort", (q) => q.eq("profileId", profile._id)).collect(),
       ctx.db.query("missionGenerationLimits").withIndex("by_profile", (q) => q.eq("profileId", profile._id)).collect(),
@@ -104,6 +104,7 @@ export const deleteUser = mutation({
       authUser && authUser.email.toLowerCase() !== profile.email.toLowerCase()
         ? ctx.db.query("invitations").withIndex("by_email", (q) => q.eq("email", authUser.email.toLowerCase())).collect()
         : [],
+      ctx.db.query("bookmarks").withIndex("by_profile", (q) => q.eq("profileId", profile._id)).collect(),
     ]);
     // These component mutations participate in the same transaction. A failed
     // cleanup rolls back the deletion rather than leaving a partially reset user.
@@ -114,7 +115,7 @@ export const deleteUser = mutation({
       await deleteAuthRows(ctx, { model: "verification", where: [{ field: "identifier", operator: "eq", value: identifier }] });
     }
     await ctx.runMutation(components.betterAuth.adapter.deleteOne, { input: { model: "user", where: [{ field: "_id", operator: "eq", value: profile.authUserId }] } });
-    const related = new Map([...memberships, ...onboarding, ...limits, ...invitations, ...acceptedInvitations, ...authEmailInvitations].map((doc) => [doc._id, doc]));
+    const related = new Map([...memberships, ...onboarding, ...limits, ...invitations, ...acceptedInvitations, ...authEmailInvitations, ...bookmarks].map((doc) => [doc._id, doc]));
     for (const id of related.keys()) await ctx.db.delete(id);
     await ctx.db.delete(profile._id);
     return { email: profile.email };

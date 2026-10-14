@@ -1,3 +1,3 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { OpportunitiesDashboard } from "@/components/opportunities-dashboard";
 export const instant = false;
-export default function OpportunitiesPage() { return <ComingSoon feature="opportunities" />; }
+export default function OpportunitiesPage() { return <OpportunitiesDashboard />; }

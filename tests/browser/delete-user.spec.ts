@@ -16,6 +16,7 @@ test("organizer deletion requires the target email, supports cancel and retry, a
         case "users:viewer": return { name: organizer.name, email: organizer.email, profile: organizer, isOrganizer: true, participantCohortIds: [], allowed: true, needsProvisioning: false };
         case "cohorts:list": return [cohort];
         case "onboarding:required": return null;
+        case "opportunities:list": return { entries: [], context: { interests: [], categories: [] } };
         case "cohorts:overview": return { cohorts: 1, participants: deleted ? 0 : 1, pendingInvitations: 0 };
         case "cohorts:roster": return { participants: deleted ? [] : [{ _id: "test-membership", _creationTime: 1, profileId: profile._id, cohortId: cohort._id, status: "active", profile, isOrganizer: false }], invitations: [] };
         default: throw new Error(`Unexpected query: ${path}`);

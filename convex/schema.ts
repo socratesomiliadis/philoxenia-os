@@ -1,8 +1,16 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { answersValidator, fallbackValidator, goalValidator, sourceValidator } from "./missionValidators";
+import { opportunityFields } from "./opportunityValidators";
 
 export default defineSchema({
+  opportunities: defineTable({
+    ...opportunityFields,
+    createdBy: v.id("profiles"), updatedAt: v.number(), supportConfirmedAt: v.optional(v.number()),
+  }).index("by_status", ["status"]).index("by_kind_source", ["kind", "sourceUrl"]),
+  bookmarks: defineTable({
+    profileId: v.id("profiles"), opportunityId: v.id("opportunities"),
+  }).index("by_profile", ["profileId"]).index("by_profile_opportunity", ["profileId", "opportunityId"]),
   onboarding: defineTable({
     profileId: v.id("profiles"), cohortId: v.id("cohorts"),
     answers: answersValidator, step: v.number(), revision: v.number(), updatedAt: v.number(),

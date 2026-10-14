@@ -10,6 +10,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useWorkspace, type Cohort } from "./workspace-context";
 import { ActionButton, Badge, Field, InlineError, LoadingState, PageHeading, Panel, errorMessage } from "./ui";
 import { OrganizerMission } from "./organizer-mission";
+import { OpportunityManager } from "./opportunity-manager";
 import { dateRangeLabel, sprintDates } from "@/lib/cohort-dates";
 
 type Roster = FunctionReturnType<typeof api.cohorts.roster>;
@@ -105,6 +106,7 @@ function OrganizerView({ preview = false, cohorts, selected, roster, overview, o
         </Panel></> : <Panel className="flex min-h-96 flex-col items-center justify-center px-8 py-12 text-center"><CalendarDays className="mb-5 size-8 text-gold" strokeWidth={1.5} aria-hidden /><h2 className="text-3xl font-medium tracking-tight text-foreground">Create your first cohort</h2><p className="mt-4 max-w-sm text-sm leading-7 text-muted">Give your cohort a name and an arrival date. We’ll set up its 14-day stay in San Francisco.</p><ActionButton className="mt-7" onPress={() => setEditor("create")}><Plus className="size-4" aria-hidden />Create your first cohort</ActionButton></Panel>}</div>
     </div>
     <div className="flex items-center gap-3 rounded-2xl bg-sage/50 p-5"><ShieldCheck className="size-5 shrink-0 text-forest" aria-hidden /><p className="text-sm leading-6 text-muted">Only approved members can enter the workspace. Cohort access, invitations, and participant details are managed here.</p></div>
+    <OpportunityManager />
     {deleting?.profile && onDeleteUser ? <DeleteUserDialog name={deleting.profile.name} email={deleting.profile.email} onClose={() => setDeleting(null)} onDelete={async (confirmationEmail) => {
       await onDeleteUser(deleting.profile!._id, confirmationEmail);
       setNotice({ message: `${deleting.profile!.email} deleted from all cohorts. You can invite this email again to start fresh.` });
