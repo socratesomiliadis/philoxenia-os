@@ -25,7 +25,7 @@ export function HomeDashboard() {
       <div className="flex flex-col items-start justify-center rounded-[24px] border border-line bg-white p-7 sm:p-8 lg:p-9">
         <h2 className="max-w-lg text-[34px] leading-[1.15] font-medium tracking-[-0.045em] text-foreground sm:text-[44px]">A little direction.<br />A world of <span className="text-forest">possibility.</span></h2>
         <p className="mt-5 max-w-sm text-sm leading-7 text-muted">Two weeks in San Francisco. Find your people and make room for what comes next.</p>
-        <Link href="/community" className="mt-7 inline-flex min-h-11 items-center gap-3 rounded-xl bg-forest px-4 py-3 text-sm font-medium text-white shadow-control transition-[background-color,transform] duration-150 ease-ui hover:bg-forest/90 active:scale-[0.98]">Meet your community<ArrowUpRight className="size-4" aria-hidden /></Link>
+        <Link href="/community" className="mt-7 inline-flex min-h-11 items-center gap-3 rounded-xl bg-forest px-4 py-3 text-sm font-medium text-accent-foreground shadow-control transition-[background-color,transform] duration-150 ease-ui hover:bg-forest/90 active:scale-[0.98]">Meet your community<ArrowUpRight className="size-4" aria-hidden /></Link>
       </div>
       <div className="flex min-w-0 items-center justify-center overflow-hidden rounded-[24px] bg-stone p-5 sm:p-7"><SanFranciscoIllustration className="h-auto max-h-64 w-full rounded-2xl" /></div>
     </section>

@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowUpRight, ShieldCheck, CalendarDays, DoorOpen, Compass }
 import { api } from "@/convex/_generated/api";
 import { authClient } from "@/lib/auth-client";
 import { backendConfigured } from "./providers";
-import { BrandMark, SanFranciscoIllustration } from "./brand";
+import { BrandWordmark, SanFranciscoIllustration } from "./brand";
 import { ActionButton, IconTile, InlineError } from "./ui";
 
 export function SignInScreen() {
@@ -43,7 +43,7 @@ function SignInContent({ ready, checking = false }: { ready: boolean; checking?:
 
   return <main className="grid min-h-dvh bg-white lg:grid-cols-2">
     <section className="relative flex min-w-0 flex-col justify-between bg-canvas p-7 sm:p-12 lg:p-14 xl:p-20">
-      <Link href="https://philoxenia.hustlehours.com/" className="flex w-fit items-center gap-2.5"><BrandMark className="size-9 text-forest" /><span className="text-xl font-semibold tracking-tight text-foreground">philoxenia<span className="ms-1 font-normal text-muted">os</span></span></Link>
+      <Link href="https://philoxenia.hustlehours.com/" aria-label="Philoxenia OS" className="inline-flex w-fit items-center"><BrandWordmark className="h-auto w-56" /></Link>
       <div className="my-12 max-w-lg lg:my-16"><h1 className="text-4xl leading-[1.12] font-medium tracking-[-0.045em] text-foreground sm:text-5xl xl:text-6xl">Big ambitions.<br /><span className="text-forest">A place to begin.</span></h1><p className="mt-6 max-w-sm text-sm leading-7 text-muted">Two weeks in San Francisco. A community in your corner. Make room for what comes next.</p></div>
       <SanFranciscoIllustration className="hidden w-full max-w-lg rounded-[24px] bg-warm lg:block" />
       <p className="mt-8 hidden text-xs text-muted lg:block">Philoxenia by Hustle Hours</p>

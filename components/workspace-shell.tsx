@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ArrowUpRight, CalendarDays, ChevronRight, Compass, DoorOpen, House, LayoutDashboard, LogOut, MapPin, Menu, PanelLeftClose, PanelLeftOpen, UsersRound, X, type LucideIcon } from "lucide-react";
 import { Button, Modal, Tooltip } from "@heroui/react";
-import { BrandMark } from "./brand";
+import { BrandMark, BrandWordmark } from "./brand";
 import { authClient } from "@/lib/auth-client";
 import { useWorkspace } from "./workspace-context";
 
@@ -85,7 +85,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   }
 
   const sidebar = (compact: boolean) => <>
-    <Link href="/" aria-label="Philoxenia home" className="mb-8 flex min-h-10 items-center gap-2.5 overflow-hidden px-2" onClick={() => setMobileOpen(false)}><BrandMark className="size-8 shrink-0 text-forest" /><span aria-hidden={compact} className={`text-lg font-semibold tracking-[-0.04em] whitespace-nowrap text-foreground transition-opacity duration-150 motion-reduce:transition-none ${compact ? "opacity-0" : "opacity-100"}`}>philoxenia<span className="ms-1 font-normal text-muted">os</span></span></Link>
+    <Link href="/" aria-label="Philoxenia home" className="relative mb-8 flex min-h-10 items-center overflow-hidden px-2" onClick={() => setMobileOpen(false)}><BrandWordmark className={`h-auto w-44 shrink-0 transition-opacity duration-150 motion-reduce:transition-none ${compact ? "opacity-0" : "opacity-100"}`} /><BrandMark className={`absolute inset-y-0 start-1 my-auto h-auto w-10 transition-opacity duration-150 motion-reduce:transition-none ${compact ? "opacity-100" : "opacity-0"}`} /></Link>
     <nav aria-label="Main navigation" className="space-y-1">{navigation.map((item) => <SidebarLink key={item.href} {...item} active={active === item.href} compact={compact} onNavigate={() => setMobileOpen(false)} />)}</nav>
     {preview || viewer?.isOrganizer ? <div className="mt-6 border-t border-line pt-5"><SidebarLink href="/organizer" label="Command Center" icon={LayoutDashboard} active={active === "/organizer"} compact={compact} onNavigate={() => setMobileOpen(false)} /></div> : null}
     <div className="mt-auto pt-8">
