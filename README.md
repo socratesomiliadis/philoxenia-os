@@ -2,7 +2,7 @@
 
 # Philoxenia OS
 
-Philoxenia OS is the shared workspace for **Philoxenia by Hustle Hours**: two weeks of building, connecting, and opening doors in San Francisco. It helps participants turn their ambitions into a plan, find relevant opportunities, and stay connected with the community after their stay.
+Philoxenia OS is the shared workspace for **Philoxenia by Hustle Hours**: two weeks of building, connecting, and opening doors in San Francisco. It helps participants turn their ambitions into a plan, find relevant opportunities, and stay connected with the community after their stay. Organizers can coordinate the program in the app or through their AI assistant with built-in MCP support.
 
 [Open Philoxenia OS](https://philoxenia-os.socrates.fyi)
 
@@ -53,6 +53,24 @@ The **Command Center** brings the program together:
 - Connect an AI assistant to help with organizer workflows, with permissions organizers can review and revoke.
 
 ![Command Center showing an active cohort, participant totals, and follow-ups for a help check-in, an unanswered support request, and an incomplete mission](docs/screenshots/command-center.png)
+
+## Work with your AI assistant through MCP
+
+Philoxenia OS supports **MCP (Model Context Protocol)**, so organizers can connect compatible assistants such as **Claude, ChatGPT, and Codex** and manage the program through conversation. A connected assistant can read current workspace records and, when given permission, make organizer updates directly in Philoxenia OS.
+
+For example, ask your assistant to:
+
+- “Show me who needs a follow-up in the November cohort and why.”
+- “Draft an opportunity from this event link.”
+- “Add a shared demo session to the cohort’s Sprint.”
+- “Show unanswered alumni support requests and save my coordination note.”
+- “Invite these participants to the next cohort.”
+
+This covers cohorts and invitations, opportunity curation, shared Sprint activities, missions, participant follow-ups, and alumni support coordination. Updates appear in the same workspace organizers use in the app.
+
+Organizers choose **read-only** or **read-and-write** access, can review connection activity, and can revoke each connection at any time. Connected assistants follow the app’s organizer access rules and checks for conflicting edits. Alumni decisions and participants’ personal Sprint changes stay with those members.
+
+Start in **Command Center → Settings → Connect your agent**. See the [connection guide for Claude, ChatGPT, and Codex](MCP.md) for setup instructions.
 
 ## Built around an invited community
 
