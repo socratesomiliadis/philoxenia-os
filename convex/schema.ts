@@ -4,8 +4,21 @@ import { answersValidator, fallbackValidator, goalValidator, sourceValidator } f
 import { opportunityFields } from "./opportunityValidators";
 import { activityFields, progressFields, outcomeFields } from "./sprintValidators";
 import { offerFields, communityFields, requestStatus } from "./openDoorsValidators";
+import { providerValidator, sourceProviderValidator } from "./ingestionValidators";
 
 export default defineSchema({
+  importSettings: defineTable({ provider: providerValidator, enabled: v.boolean(), autoPublish: v.boolean(), monthlyLimit: v.optional(v.number()), feedUrl: v.optional(v.string()),
+    ownerId: v.id("profiles"), lastAttemptAt: v.optional(v.number()), lastSuccessAt: v.optional(v.number()), activeRunId: v.optional(v.id("importRuns")) }).index("by_provider", ["provider"]),
+  importUsage: defineTable({ provider: providerValidator, month: v.string(), reserved: v.number(), runs: v.number() }).index("by_provider_month", ["provider", "month"]),
+  importRuns: defineTable({ provider: sourceProviderValidator, trigger: v.union(v.literal("manual"), v.literal("scheduled"), v.literal("csv")),
+    ownerId: v.id("profiles"), startedAt: v.number(), finishedAt: v.optional(v.number()),
+    status: v.union(v.literal("queued"), v.literal("running"), v.literal("succeeded"), v.literal("failed")),
+    reservation: v.number(), autoPublish: v.boolean(), error: v.optional(v.string()), feedUrl: v.optional(v.string()),
+    added: v.number(), updated: v.number(), skipped: v.number(),
+  }).index("by_started", ["startedAt"]),
+  opportunitySources: defineTable({ provider: sourceProviderValidator, sourceId: v.string(), canonicalUrl: v.string(), opportunityId: v.id("opportunities"),
+    snapshot: v.object(opportunityFields), cancelled: v.boolean(), approvalRequired: v.optional(v.boolean()), lastImportedAt: v.number(), runId: v.id("importRuns"),
+  }).index("by_provider_source", ["provider", "sourceId"]).index("by_url", ["canonicalUrl"]).index("by_opportunity", ["opportunityId"]),
   alumniOffers: defineTable({ ...offerFields, ownerId: v.id("profiles"), revision: v.number(), updatedAt: v.number() })
     .index("by_published", ["published"]).index("by_owner", ["ownerId"]),
   supportRequests: defineTable({
@@ -42,6 +55,8 @@ export default defineSchema({
   }).index("by_profile_cohort", ["profileId", "cohortId"]).index("by_activity", ["activityId"]),
   opportunities: defineTable({
     ...opportunityFields,
+    importOverrides: v.optional(v.array(v.string())), primarySourceId: v.optional(v.id("opportunitySources")),
+    lastImportedAt: v.optional(v.number()), sourceCancelled: v.optional(v.boolean()), approvalRequired: v.optional(v.boolean()),
     createdBy: v.id("profiles"), updatedAt: v.number(), supportConfirmedAt: v.optional(v.number()),
   }).index("by_status", ["status"]).index("by_kind_source", ["kind", "sourceUrl"]),
   bookmarks: defineTable({

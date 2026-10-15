@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TZDate } from "@date-fns/tz";
-import { SF_TIMEZONE } from "./cohort-dates";
+import { dateLabel, SF_TIMEZONE } from "./cohort-dates";
 
 export const opportunityKinds = ["event", "startup", "founder", "alumni"] as const;
 export const kindLabels = { event: "Event", startup: "Startup", founder: "Founder", alumni: "Alumni offer" };
@@ -10,6 +10,7 @@ export const categoryLabels: Record<MissionCategory, string> = { connect: "Meet 
 
 export function canonicalSource(value: string) {
   const url = new URL(value);
+  if (["lu.ma", "www.lu.ma", "www.luma.com"].includes(url.hostname)) url.hostname = "luma.com";
   url.hash = "";
   for (const key of [...url.searchParams.keys()]) if (/^(utm_|fbclid$|gclid$)/i.test(key)) url.searchParams.delete(key);
   url.searchParams.sort();
@@ -36,6 +37,7 @@ export const opportunitySchema = z.object({
   status: z.enum(["draft", "published", "archived"]),
   startAt: z.number().int().min(0).max(8_640_000_000_000_000).optional(),
   endAt: z.number().int().min(0).max(8_640_000_000_000_000).optional(),
+  eventDate: z.iso.date().optional(), eventEndDate: z.iso.date().optional(),
   cost: z.enum(["free", "paid", "unknown"]).optional(),
   costNote: z.string().trim().max(160).optional(),
   support: z.object({
@@ -46,10 +48,12 @@ export const opportunitySchema = z.object({
   }).optional(),
 }).superRefine((value, ctx) => {
   if (value.kind === "event") {
-    if (value.startAt === undefined) ctx.addIssue({ code: "custom", path: ["startAt"], message: "Set the event start time in San Francisco time." });
+    if (value.startAt === undefined && !value.eventDate) ctx.addIssue({ code: "custom", path: ["startAt"], message: "Set the event start time or an all-day date." });
+    if (value.eventDate && (value.startAt !== undefined || value.endAt !== undefined)) ctx.addIssue({ code: "custom", message: "Use all-day dates or event times, not both." });
+    if (value.eventEndDate && (!value.eventDate || value.eventEndDate <= value.eventDate)) ctx.addIssue({ code: "custom", message: "The all-day end date must follow the start date." });
     if (!value.cost) ctx.addIssue({ code: "custom", path: ["cost"], message: "Choose free, paid, or price not confirmed." });
     if (value.endAt !== undefined && (value.startAt === undefined || value.endAt <= value.startAt)) ctx.addIssue({ code: "custom", path: ["endAt"], message: "Set the end time after the start time." });
-  } else if (value.startAt !== undefined || value.endAt !== undefined || value.cost !== undefined || value.costNote !== undefined) {
+  } else if (value.startAt !== undefined || value.endAt !== undefined || value.eventDate !== undefined || value.eventEndDate !== undefined || value.cost !== undefined || value.costNote !== undefined) {
     ctx.addIssue({ code: "custom", message: "Dates and pricing belong to events. Remove them from this listing." });
   }
   if (value.kind === "alumni" && !value.support) ctx.addIssue({ code: "custom", path: ["support"], message: "Add a confirmed support path for this alumni offer." });
@@ -57,7 +61,8 @@ export const opportunitySchema = z.object({
 });
 
 export type OpportunityInput = z.infer<typeof opportunitySchema>;
-export type Opportunity = OpportunityInput & { _id: string; saved: boolean; updatedAt: number; supportConfirmedAt?: number; isSample?: boolean };
+export type Opportunity = OpportunityInput & { _id: string; saved: boolean; updatedAt: number; supportConfirmedAt?: number; isSample?: boolean;
+  lastImportedAt?: number; sourceCancelled?: boolean; sourceStale?: boolean; approvalRequired?: boolean; importOverrides?: string[]; primarySourceId?: string };
 export type RecommendationContext = { interests: string[]; categories: MissionCategory[]; startDate?: string; endDate?: string };
 
 export function categoriesFromGoals(goals: { title: string; metric: string; firstActions: string[] }[]): MissionCategory[] {
@@ -91,11 +96,21 @@ export function eventTimeLabel(timestamp: number) {
   return new Intl.DateTimeFormat("en-US", { timeZone: SF_TIMEZONE, month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(timestamp);
 }
 export const costLabels = { free: "Free", paid: "Paid", unknown: "Price not confirmed" };
+export function opportunityDate(entry: OpportunityInput) { return entry.eventDate ?? (entry.startAt === undefined ? undefined : sfCalendarDate(entry.startAt)); }
+export function opportunitySortTime(entry: OpportunityInput) { return entry.startAt ?? (entry.eventDate ? parseSfDateTime(`${entry.eventDate}T00:00`) : Infinity); }
+export function opportunityTimeLabel(entry: OpportunityInput) {
+  if (entry.eventDate) {
+    const last = entry.eventEndDate ? new Date(Date.parse(`${entry.eventEndDate}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10) : entry.eventDate;
+    return `${dateLabel(entry.eventDate)}${last !== entry.eventDate ? ` – ${dateLabel(last)}` : ""} · All day`;
+  }
+  return entry.startAt === undefined ? "Time not confirmed" : eventTimeLabel(entry.startAt);
+}
 
 export function matchOpportunity(entry: OpportunityInput, context: RecommendationContext) {
   const matchingInterests = entry.interests.filter((interest) => context.interests.some((item) => item.toLowerCase() === interest.toLowerCase()));
   const category = entry.categories.find((item) => context.categories.includes(item));
-  const duringStay = entry.kind === "event" && entry.startAt !== undefined && !!context.startDate && !!context.endDate && sfCalendarDate(entry.startAt) >= context.startDate && sfCalendarDate(entry.startAt) <= context.endDate;
+  const date = opportunityDate(entry);
+  const duringStay = entry.kind === "event" && !!date && !!context.startDate && !!context.endDate && date >= context.startDate && date <= context.endDate;
   const reasons = [
     ...matchingInterests.slice(0, 2).map((interest) => `Matches ${interest}`),
     ...(duringStay ? ["During your stay"] : []),
@@ -123,7 +138,7 @@ export function filterOpportunities(entries: Opportunity[], filters: Opportunity
     if (!terms.every((term) => text.includes(term))) return false;
     if (entry.kind === "event") {
       if (filters.cost !== "any" && entry.cost !== filters.cost) return false;
-      const date = entry.startAt === undefined ? "" : sfCalendarDate(entry.startAt);
+      const date = opportunityDate(entry) ?? "";
       if (filters.from && date < filters.from) return false;
       if (filters.to && date > filters.to) return false;
     }

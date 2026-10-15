@@ -52,7 +52,7 @@ export type SprintActions = {
 export function activityFromOpportunity(opportunity: Opportunity): ActivityInput {
   const timed = opportunity.kind === "event" && opportunity.startAt !== undefined;
   return { title: timed ? opportunity.title : `Explore ${opportunity.title}`.slice(0, 160), kind: timed ? "event" : "task", notes: opportunity.summary,
-    location: opportunity.location, ...(timed ? { startAt: opportunity.startAt, endAt: opportunity.endAt ?? opportunity.startAt! + 3_600_000 } : {}) };
+    location: opportunity.location, ...(timed ? { startAt: opportunity.startAt, endAt: opportunity.endAt ?? opportunity.startAt! + 3_600_000 } : opportunity.eventDate ? { day: opportunity.eventDate } : {}) };
 }
 
 export function sprintDays(startDate: string, endDate: string) {

@@ -24,6 +24,7 @@
     "better-auth": "1.6.15",
     "convex": "^1.46.0",
     "date-fns": "^4.4.0",
+    "ical.js": "^2.2.1",
     "lucide-react": "^1.57.0",
     "next": "16.4.0",
     "react": "19.3.0",

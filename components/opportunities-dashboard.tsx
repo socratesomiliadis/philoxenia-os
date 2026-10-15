@@ -6,7 +6,7 @@ import { toast } from "@heroui/react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { defaultOpportunityFilters, filterOpportunities, matchOpportunity, type Opportunity, type OpportunityFilters, type RecommendationContext } from "@/lib/opportunities";
+import { defaultOpportunityFilters, filterOpportunities, matchOpportunity, opportunitySortTime, type Opportunity, type OpportunityFilters, type RecommendationContext } from "@/lib/opportunities";
 import { sampleOpportunities, sampleRecommendationContext } from "@/lib/sample-opportunities";
 import { useWorkspace, type Cohort } from "./workspace-context";
 import { InlineError, LoadingState, errorMessage } from "./ui";
@@ -54,8 +54,8 @@ function OpportunitiesView({ entries, context, cohorts, cohort, onSelectCohort, 
   const invalidRange = !!filters.from && !!filters.to && filters.to < filters.from;
   const visible = filterOpportunities(entries, filters).sort((a, b) => {
     if (sort === "newest") return b.updatedAt - a.updatedAt || a.title.localeCompare(b.title);
-    if (sort === "soonest") return (a.startAt ?? Infinity) - (b.startAt ?? Infinity) || a.title.localeCompare(b.title);
-    return matchOpportunity(b, context).score - matchOpportunity(a, context).score || (a.startAt ?? Infinity) - (b.startAt ?? Infinity) || a.title.localeCompare(b.title);
+    if (sort === "soonest") return opportunitySortTime(a) - opportunitySortTime(b) || a.title.localeCompare(b.title);
+    return matchOpportunity(b, context).score - matchOpportunity(a, context).score || opportunitySortTime(a) - opportunitySortTime(b) || a.title.localeCompare(b.title);
   });
   function update(patch: Partial<OpportunityFilters>) { setFilters((previous) => ({ ...previous, ...patch })); }
   function reset() { setFilters(defaultOpportunityFilters); setDatePreset("any"); }

@@ -12,6 +12,7 @@ import { ActionButton, Badge, ChoiceField, Field, InlineError, LoadingState, Pag
 import { CohortNavigation, CohortRoster, OrganizerOverview } from "./organizer-workspace";
 import { OrganizerMission } from "./organizer-mission";
 import { OpportunityManager } from "./opportunity-manager";
+import { OpportunityImports } from "./opportunity-imports";
 import { OrganizerSprint } from "./organizer-sprint";
 import { SprintDashboard } from "./sprint-dashboard";
 import { SprintModal } from "./sprint-editors";
@@ -120,6 +121,7 @@ function OrganizerView({ preview = false, cohorts, selected, roster, overview, o
       </> : <section className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-line bg-soft/50 p-6 text-center"><CalendarDays className="mb-4 size-7 text-forest" strokeWidth={1.6} aria-hidden /><h2 className="text-2xl font-medium tracking-tight text-foreground">Create your first cohort</h2><p className="mt-3 max-w-sm text-sm leading-6 text-muted">Choose a name and arrival date. We’ll set the departure date for a 14-day stay.</p><ActionButton className="mt-5" isDisabled={preview} onPress={() => setEditor("create")}><Plus className="size-4" aria-hidden />Create your first cohort</ActionButton></section>}</div>
     </div>
     <OpportunityManager />
+    <OpportunityImports />
     <OpenDoors organizer />
     {deleting?.profile && onDeleteUser ? <DeleteUserDialog name={deleting.profile.name} email={deleting.profile.email} onClose={() => setDeleting(null)} onDelete={async (confirmationEmail) => {
       await onDeleteUser(deleting.profile!._id, confirmationEmail);

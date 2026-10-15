@@ -41,7 +41,7 @@ async function entriesFor(ctx: Ctx, cohortId: Id<"cohorts">, profileId: Id<"prof
     return { _id: activity._id, scope: activity.scope, kind: activity.kind, title: activity.title, notes: activity.notes, location: activity.location,
       day: activity.day, startAt: activity.startAt, endAt: activity.endAt, revision: activity.revision, updatedAt: activity.updatedAt, cancelledAt: activity.cancelledAt,
       opportunityId: activity.opportunityId, sourceUrl: activity.sourceUrl,
-      sourceChanged: !!source && source.updatedAt !== activity.sourceUpdatedAt, sourceUnavailable: !!activity.opportunityId && (!source || source.status !== "published"),
+      sourceChanged: !!source && source.updatedAt !== activity.sourceUpdatedAt, sourceUnavailable: !!activity.opportunityId && (!source || source.status !== "published" || source.sourceCancelled === true),
       progress: progressView(progressMap.get(activity._id)), calendarUid: `${activity._id}.${profileId}@philoxenia.hustlehours.com`,
     };
   }));
@@ -110,6 +110,7 @@ export const saveActivity = mutation({
     if (!existing && args.opportunityId) {
       source = await ctx.db.get(args.opportunityId);
       if (!source || source.status !== "published") throw new ConvexError("This opportunity is no longer published. Refresh opportunities.");
+      if (source.sourceCancelled) throw new ConvexError("The source reports this event as cancelled. Choose another opportunity.");
       const duplicate = await ctx.db.query("sprintActivities").withIndex("by_owner_cohort_opportunity", (q) => q.eq("ownerId", member.profile._id).eq("cohortId", cohort._id).eq("opportunityId", source!._id)).first();
       if (duplicate) throw new ConvexError("This opportunity is already in your Sprint. Edit the existing activity instead.");
     }

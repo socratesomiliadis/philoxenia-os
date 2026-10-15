@@ -11,7 +11,11 @@
 import type * as access from "../access.js";
 import type * as auth from "../auth.js";
 import type * as cohorts from "../cohorts.js";
+import type * as crons from "../crons.js";
 import type * as http from "../http.js";
+import type * as ingestion from "../ingestion.js";
+import type * as ingestionActions from "../ingestionActions.js";
+import type * as ingestionValidators from "../ingestionValidators.js";
 import type * as invitations from "../invitations.js";
 import type * as missionValidators from "../missionValidators.js";
 import type * as missions from "../missions.js";
@@ -35,7 +39,11 @@ declare const fullApi: ApiFromModules<{
   access: typeof access;
   auth: typeof auth;
   cohorts: typeof cohorts;
+  crons: typeof crons;
   http: typeof http;
+  ingestion: typeof ingestion;
+  ingestionActions: typeof ingestionActions;
+  ingestionValidators: typeof ingestionValidators;
   invitations: typeof invitations;
   missionValidators: typeof missionValidators;
   missions: typeof missions;

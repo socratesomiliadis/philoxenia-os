@@ -30,7 +30,7 @@ export const list = query({
     return {
       entries: entries.map((entry) => {
         const { createdBy, ...listing } = entry;
-        return { ...listing, ...(args.management ? { createdBy } : {}), saved: saved.has(entry._id) };
+        return { ...listing, ...(args.management ? { createdBy } : {}), saved: saved.has(entry._id), ...(entry.lastImportedAt ? { sourceStale: Date.now() - entry.lastImportedAt > 8 * 86_400_000 } : {}) };
       }),
       context,
     };
@@ -53,13 +53,17 @@ export const save = mutation({
     const existing = args.opportunityId ? await ctx.db.get(args.opportunityId) : null;
     if (args.opportunityId && !existing) throw new ConvexError("This listing is unavailable. Refresh the catalog.");
     if (existing && existing.updatedAt !== args.expectedUpdatedAt) throw new ConvexError("Another organizer changed this listing. Close the editor and reopen it to load their changes.");
+    if (existing?.primarySourceId && input.kind !== existing.kind) throw new ConvexError("Imported listings must keep their original type. Create a separate listing for another type.");
     const duplicate = await ctx.db.query("opportunities").withIndex("by_kind_source", (q) => q.eq("kind", input.kind).eq("sourceUrl", input.sourceUrl)).first();
     if (duplicate && duplicate._id !== args.opportunityId) throw new ConvexError("This source is already listed for this type. Edit the existing listing instead.");
     const updatedAt = Math.max(Date.now(), (existing?.updatedAt ?? 0) + 1);
     const supportConfirmedAt = input.kind === "alumni" && args.confirmSupport ? updatedAt : undefined;
     if (existing) {
+      const changedFields = Object.keys(opportunityFields).filter((key) => JSON.stringify(input[key as keyof typeof input]) !== JSON.stringify(existing[key as keyof typeof input]));
+      const timingFields = ["startAt", "endAt", "eventDate", "eventEndDate"];
+      const importOverrides = existing.primarySourceId ? [...new Set([...(existing.importOverrides ?? []), ...changedFields, ...(timingFields.some((key) => changedFields.includes(key)) ? timingFields : [])])] : undefined;
       // Explicit undefined values clear old event/offer fields when changing type.
-      await ctx.db.patch(existing._id, { ...input, startAt: input.startAt, endAt: input.endAt, cost: input.cost, costNote: input.costNote, support: input.support, supportConfirmedAt, updatedAt });
+      await ctx.db.patch(existing._id, { ...input, startAt: input.startAt, endAt: input.endAt, eventDate: input.eventDate, eventEndDate: input.eventEndDate, cost: input.cost, costNote: input.costNote, support: input.support, supportConfirmedAt, updatedAt, importOverrides });
       return existing._id;
     }
     return ctx.db.insert("opportunities", { ...input, createdBy: profile._id, updatedAt, supportConfirmedAt });
