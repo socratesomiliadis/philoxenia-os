@@ -6,7 +6,7 @@ import { parseLumaCalendar } from "../lib/luma-ical";
 import { lumaCalendar } from "./fixtures/luma-calendar";
 import { api, internal, components } from "../convex/_generated/api";
 import { DAY, DEFAULT_LUMA_FEED_URL, normalizeSerpEvent, parseYcCsv, type ImportProvider } from "../lib/ingestion";
-import { opportunitySchema } from "../lib/opportunities";
+import { defaultOpportunityFilters, filterOpportunities, opportunitySchema } from "../lib/opportunities";
 
 const modules = import.meta.glob("../convex/**/*.{ts,js}");
 const now = Date.parse("2026-10-15T12:00:00Z");
@@ -53,8 +53,19 @@ describe("Stage 6 normalization", () => {
     expect(parseYcCsv(validCsv)[0].opportunity).toMatchObject({ title: "Sample, Inc", interests: ["Developer tools", "AI"], status: "draft" });
     expect(() => parseYcCsv(csv)).toThrow();
     expect(() => parseYcCsv(validCsv.replace("www.ycombinator.com", "evil.example"))).toThrow("Row 2");
+    expect(() => parseYcCsv(validCsv.replace("https:", "http:"))).toThrow("Row 2");
+    expect(() => parseYcCsv(validCsv.replace("www.ycombinator.com", "www.ycombinator.com:8443"))).toThrow("Row 2");
     expect(() => parseYcCsv("a".repeat(200_001))).toThrow("200 KB");
     expect(() => parseYcCsv(validCsv + "\n" + Array(50).fill(validCsv.split("\r\n")[1]).join("\n"))).toThrow("50 YC");
+  });
+  it("keeps SF events in the default filter using the documented venue/locality address shape", () => {
+    const base = { title: "Founders event", date: { when: "Oct 20, 6:00 PM" }, ticket_info: [{ link: "https://example.com/event" }], venue: { name: "Moscone Center" }, address: ["Moscone Center", "San Francisco, CA"] };
+    const record = normalizeSerpEvent(base, now)!;
+    expect(record.opportunity).toMatchObject({ area: "sf", location: "Moscone Center · San Francisco, CA" });
+    expect(filterOpportunities([{ ...record.opportunity, _id: "sf-event", saved: false, updatedAt: now }], defaultOpportunityFilters)).toHaveLength(1);
+    expect(normalizeSerpEvent({ ...base, address: ["San Francisco Conference Center", "South San Francisco, CA"] }, now)!.opportunity.area).toBe("bay-area");
+    expect(normalizeSerpEvent({ ...base, address: ["San Francisco Club", "New York, NY"] }, now)).toBeNull();
+    expect(normalizeSerpEvent({ ...base, addressCity: "San Francisco", addressRegion: "CA", address: [] }, now)!.opportunity.area).toBe("sf");
   });
 });
 describe("Stage 6 persistence and authorization", () => {

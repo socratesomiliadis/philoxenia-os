@@ -69,11 +69,14 @@ export function normalizeSerpEvent(value: unknown, now: number): ImportedRecord 
   if (!link || startAt === undefined || startAt < now || startAt > now + 30 * DAY) return null;
   try {
     const canonicalUrl = importUrl(link);
-    const address = Array.isArray(r.address) ? r.address.map(str).filter(Boolean).join(", ") : "";
-    const city = str(r.addressCity) || str(r.addressRegion) || address;
+    const address = Array.isArray(r.address) ? r.address.map(str).filter(Boolean) : [];
+    // SerpApi puts the venue before the locality. Classify by the locality so an
+    // SF event stays visible in the default filter, regardless of its venue name.
+    const city = str(r.addressCity) || address.at(-1) || str(r.addressRegion);
     const online = r.isOnline === true;
     // A geographically targeted search is not evidence that every returned event is local.
-    if (!online && !/san francisco|bay area|oakland|berkeley|palo alto|san jose|mountain view|redwood city|san mateo|sunnyvale|menlo park|south san francisco/i.test(city)) return null;
+    const locality = city.split(",")[0].trim();
+    if (!online && !/^(?:san francisco|bay area|oakland|berkeley|palo alto|san jose|mountain view|redwood city|san mateo|sunnyvale|menlo park|south san francisco)$/i.test(locality)) return null;
     const venue = str(r.venue) || str(object(r.venue).name) || str(r.venueName);
     const location = online ? "Online" : (venue ? `${venue}${city ? ` · ${city}` : ""}` : city ? `${city} · venue not announced` : "Venue not announced").slice(0, 160);
     const cost = r.isFree === true || (typeof r.extracted_price === "number" && r.extracted_price === 0) ? "free" : r.isFree === false || (typeof r.price === "number" && r.price > 0) || (typeof r.extracted_price === "number" && r.extracted_price > 0) ? "paid" : "unknown";
@@ -82,7 +85,7 @@ export function normalizeSerpEvent(value: unknown, now: number): ImportedRecord 
     const interests = /\bai\b|artificial intelligence/i.test(`${title} ${description}`) ? ["AI & machine learning"] : ["Other"];
     const end = isoTime(r.endAt);
     const opportunity = opportunitySchema.parse({ kind: "event", title, summary: description.slice(0, 240), description,
-      interests, categories: ["connect", "learn"], area: online ? "online" : /^(san francisco)(?:,|$)/i.test(city) ? "sf" : "bay-area",
+      interests, categories: ["connect", "learn"], area: online ? "online" : /^san francisco$/i.test(locality) ? "sf" : "bay-area",
       location, sourceName: "Google Events", sourceUrl: canonicalUrl, organizerPick: false, status: "draft", startAt,
       ...(end !== undefined && end > startAt ? { endAt: end } : {}), cost,
       costNote: (typeof r.price === "number" ? `${r.currency ? str(r.currency) : "Currency unconfirmed"} ${r.price}` : str(r.price) || "").slice(0, 160),
@@ -120,7 +123,7 @@ export function parseYcCsv(text: string): ImportedRecord[] {
     const r = Object.fromEntries(headers.map((h, i) => [h, cells[i].trim()]));
     try {
       const url = new URL(r.sourceurl);
-      if (!["www.ycombinator.com", "ycombinator.com"].includes(url.hostname) || !/^\/companies\/[^/]+\/?$/.test(url.pathname)) throw new Error("Use the original YC company directory link.");
+      if (url.protocol !== "https:" || url.port || !["www.ycombinator.com", "ycombinator.com"].includes(url.hostname) || !/^\/companies\/[^/]+\/?$/.test(url.pathname)) throw new Error("Use the original HTTPS YC company directory link.");
       url.hostname = "www.ycombinator.com";
       const opportunity = opportunitySchema.parse({ kind: "startup", title: r.title, summary: r.summary, description: r.description,
         sourceUrl: url.toString(), sourceName: "Y Combinator", interests: r.interests.split("|").filter(Boolean), area: r.area,
