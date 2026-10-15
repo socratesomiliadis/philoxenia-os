@@ -59,8 +59,10 @@ async function reserve(ctx: MutationCtx, provider: ImportProvider, trigger: "man
       await ctx.db.patch(active._id, { status: "failed", finishedAt: now, error: "Import expired. Existing listings are preserved." });
     }
   }
-  const interval = trigger === "manual" ? 60 * 60_000 : await cadence(ctx);
-  if (settings.lastAttemptAt !== undefined && now - settings.lastAttemptAt < interval) return stop("This source was refreshed recently. Manual refreshes are limited to once per hour.");
+  if (trigger === "scheduled" || provider === "serpapi") {
+    const interval = trigger === "manual" ? 60 * 60_000 : await cadence(ctx);
+    if (settings.lastAttemptAt !== undefined && now - settings.lastAttemptAt < interval) return stop("Google Events manual refreshes are limited to once per hour.");
+  }
   const month = monthKey(now);
   const usage = await ctx.db.query("importUsage").withIndex("by_provider_month", (q) => q.eq("provider", provider).eq("month", month)).unique();
   const reservation = provider === "luma" ? 0 : SERP_QUERIES.length;
@@ -108,10 +110,10 @@ export const expire = internalMutation({ args: { runId: v.id("importRuns") }, ha
 } });
 
 async function upsert(ctx: MutationCtx, run: Doc<"importRuns">, record: ImportedRecord) {
-  const snapshot = opportunitySchema.parse(record.opportunity);
   let source = await ctx.db.query("opportunitySources").withIndex("by_provider_source", (q) => q.eq("provider", run.provider).eq("sourceId", record.sourceId)).unique();
   const urlSources = await ctx.db.query("opportunitySources").withIndex("by_url", (q) => q.eq("canonicalUrl", record.canonicalUrl)).collect();
   source ??= urlSources.find((s) => s.provider === run.provider) ?? null;
+  const snapshot = opportunitySchema.parse({ ...record.opportunity, imageUrl: record.opportunity.imageUrl ?? source?.snapshot.imageUrl });
   const byUrl = urlSources[0];
   // A missing upstream cancellation field cannot retract an explicit earlier report.
   const cancelled = record.cancelled ?? source?.cancelled ?? false;
@@ -137,6 +139,7 @@ async function upsert(ctx: MutationCtx, run: Doc<"importRuns">, record: Imported
     const patch: Partial<OpportunityInput> = {};
     for (const key of Object.keys(opportunityFields) as (keyof OpportunityInput)[]) {
       if (key === "status" || key === "organizerPick" || overrides.has(key)) continue;
+      if (key === "imageUrl" && snapshot.imageUrl === undefined) continue;
       Object.assign(patch, { [key]: snapshot[key] });
     }
     await ctx.db.patch(entry._id, { ...patch, primarySourceId: sourceId, importOverrides: [...overrides], lastImportedAt: now, sourceCancelled: cancelled, approvalRequired: record.approvalRequired,

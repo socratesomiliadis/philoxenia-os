@@ -60,6 +60,7 @@ test("sample discovery supports search, event filters, Bay Area, saved listings,
   await expect(page.getByRole("heading", { name: "Opportunities", exact: true })).toBeVisible();
   await expect(page.getByRole("article")).toHaveCount(6);
   await page.getByRole("button", { name: "Save Builders & good questions", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Unsave Builders & good questions", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: /^Saved/ }).click();
   await expect(page.getByRole("article")).toHaveCount(1);
   await page.getByRole("button", { name: /^Saved/ }).click();
@@ -121,6 +122,59 @@ test("authenticated bookmarks show failures inside details, retry, survive refre
   await expect(page.getByRole("article")).toHaveCount(1);
   await page.getByRole("button", { name: "Unsave Builders & good questions", exact: true }).click();
   await expect(page.getByRole("heading", { name: "No saved opportunities here yet" })).toBeVisible();
+});
+
+test("event artwork loads in cards and details, with no card footer and a clean fallback", async ({ page }) => {
+  const entry = { ...sampleOpportunities[0], isSample: false, imageUrl: "https://images.lumacdn.com/uploads/test-cover.png" };
+  const missingImage = { ...entry, _id: "no-artwork", title: "An upcoming event without artwork", imageUrl: undefined };
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await catalogSession(page, true, [entry, missingImage]);
+  await page.route("**/_next/image?**", (route) => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64") }));
+  await page.goto("/opportunities");
+  const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: entry.title, exact: true }) });
+  const otherCard = page.getByRole("article").filter({ has: page.getByRole("heading", { name: missingImage.title, exact: true }) });
+  await expect(card.locator("img")).toBeVisible();
+  await card.locator("img").scrollIntoViewIfNeeded();
+  await card.locator("img").evaluate((image: HTMLImageElement) => image.decode());
+  await expect(card.getByText("During your stay", { exact: true })).toHaveCount(0);
+  await expect(card.getByText("View details", { exact: true })).toHaveCount(0);
+  const titleOffset = () => card.getByRole("heading").evaluate((heading) => heading.getBoundingClientRect().top - heading.closest("article")!.getBoundingClientRect().top);
+  const imageOffset = await titleOffset();
+  const fallbackOffset = await otherCard.getByRole("heading").evaluate((heading) => heading.getBoundingClientRect().top - heading.closest("article")!.getBoundingClientRect().top);
+  expect(Math.abs(imageOffset - fallbackOffset)).toBeLessThan(1);
+  const open = card.getByRole("button", { name: `View ${entry.title}`, exact: true });
+  await open.focus();
+  await open.press("Enter");
+  const details = page.getByRole("dialog", { name: entry.title, exact: true });
+  await expect(details.locator("img")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(open).toBeFocused();
+  await page.setViewportSize({ width: 320, height: 850 });
+  await expect(card.locator("img")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.unroute("**/_next/image?**");
+  await page.route("**/_next/image?**", (route) => route.fulfill({ status: 404 }));
+  await page.reload();
+  await expect(card).toBeVisible();
+  await expect(card.locator("img")).toHaveCount(0);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  expect(Math.abs(await titleOffset() - imageOffset)).toBeLessThan(1);
+  await card.getByRole("button", { name: `View ${entry.title}`, exact: true }).click();
+  await expect(details).toBeVisible();
+});
+
+test("discovery removes started events and updates when the next event begins", async ({ page }) => {
+  const now = new Date("2026-10-15T18:00:00Z");
+  await page.clock.install({ time: now });
+  const upcoming = { ...sampleOpportunities[0], isSample: false, startAt: now.getTime() + 60_000, endAt: now.getTime() + 3_600_000 };
+  const started = { ...upcoming, _id: "started", title: "An event that already started", startAt: now.getTime() - 1 };
+  await catalogSession(page, true, [started, upcoming]);
+  await page.goto("/opportunities");
+  await expect(page.getByRole("heading", { name: upcoming.title, exact: true })).toBeVisible();
+  await page.clock.pauseAt(new Date(now.getTime() + 1_000));
+  await expect(page.getByRole("heading", { name: started.title, exact: true })).toHaveCount(0);
+  await page.clock.fastForward(59_000);
+  await expect(page.getByRole("article")).toHaveCount(0);
 });
 
 test("organizers create drafts, publish and archive events, and add real curated directory drafts", async ({ page }) => {

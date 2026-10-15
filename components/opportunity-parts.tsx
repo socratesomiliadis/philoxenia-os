@@ -2,7 +2,8 @@
 
 
 import { ArrowUpRight, Bookmark, Building2, CalendarDays, Check, DoorOpen, MapPin, UserRound, UsersRound } from "lucide-react";
-import { useId, type ComponentProps, type SelectHTMLAttributes } from "react";
+import Image from "next/image";
+import { useId, useState, type ComponentProps, type SelectHTMLAttributes } from "react";
 import { categoryLabels, costLabels, eventTimeLabel, opportunityTimeLabel, kindLabels, matchOpportunity, type Opportunity, type RecommendationContext } from "@/lib/opportunities";
 import { ActionButton, Badge, InlineError } from "./ui";
 import { WorkspaceDialog } from "./workspace-dialog";
@@ -25,14 +26,23 @@ export function BookmarkButton({ entry, busy, onBookmark }: { entry: Opportunity
   return <ActionButton appearance="secondary" aria-label={`${entry.saved ? "Unsave" : "Save"} ${entry.title}`} aria-pressed={entry.saved} disabled={busy} onClick={() => onBookmark(entry)} className={`relative z-10 size-10 min-h-10 min-w-10 shrink-0 rounded-lg px-0 shadow-none ${entry.saved ? "bg-sage text-forest" : "text-muted-foreground"}`}><Bookmark className={`size-[18px] ${entry.saved ? "fill-forest text-forest" : "text-muted-foreground"}`} aria-hidden /></ActionButton>;
 }
 
-export function OpportunityCard({ entry, context, busy, onBookmark, onOpen }: { entry: Opportunity; context: RecommendationContext; busy: boolean; onBookmark: (entry: Opportunity) => void; onOpen: () => void }) {
-  const match = matchOpportunity(entry, context);
+function OpportunityImage({ src, detail = false, fallback = false, className }: { src?: string; detail?: boolean; fallback?: boolean; className?: string }) {
+  const [failedSrc, setFailedSrc] = useState<string>();
+  const hasImage = src && failedSrc !== src;
+  if (!hasImage && !fallback) return null;
+  return <div className={cn("relative aspect-video shrink-0 overflow-hidden rounded-xl", hasImage ? "bg-soft" : "bg-sage/60", className)}>
+    {hasImage ? <Image src={src} alt="" fill sizes={detail ? "(max-width: 640px) 100vw, 640px" : "(max-width: 767px) 100vw, (max-width: 1280px) 50vw, 33vw"} className={detail ? "object-contain" : "object-cover"} onError={() => setFailedSrc(src)} /> : <div aria-hidden className="flex h-full items-center justify-center"><CalendarDays className="size-12 text-forest/25" strokeWidth={1.2} /></div>}
+  </div>;
+}
+
+export function OpportunityCard({ entry, busy, onBookmark, onOpen }: { entry: Opportunity; busy: boolean; onBookmark: (entry: Opportunity) => void; onOpen: () => void }) {
   const Icon = kindIcons[entry.kind];
   return <article className="@container/opportunity group relative flex min-w-0 flex-col rounded-2xl surface-card p-5 transition-colors duration-150 hover:bg-warm">
+    <OpportunityImage src={entry.imageUrl} fallback={entry.kind === "event"} className="mb-4" />
     <div className="mb-4 flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2.5"><span className={`inline-flex size-9 shrink-0 items-center justify-center rounded-xl ${entry.kind === "alumni" ? "bg-sage text-forest" : "bg-soft text-muted-foreground"}`}><Icon className="size-[18px]" strokeWidth={1.7} aria-hidden /></span><span className="text-xs text-muted-foreground">{kindLabels[entry.kind]}</span>{entry.organizerPick ? <span className="hidden rounded-md bg-gold-soft px-2 py-1 text-[11px] text-gold-foreground @min-[380px]/opportunity:inline">Organizer pick</span> : null}</div><BookmarkButton entry={entry} busy={busy} onBookmark={onBookmark} /></div>
-    <div className="grid min-w-0 flex-1 gap-x-8 gap-y-4 @min-[640px]/opportunity:grid-cols-[minmax(0,1fr)_260px]">
+    <div className="grid min-w-0 content-start gap-x-8 gap-y-4 @min-[640px]/opportunity:grid-cols-[minmax(0,1fr)_260px]">
       <div className="min-w-0 wrap-anywhere">
-        <h2 className="text-xl leading-7 font-medium tracking-[-0.035em] text-foreground @min-[640px]/opportunity:text-2xl">{entry.title}</h2>
+        <h2 aria-label={entry.title} className="text-xl leading-7 font-medium tracking-[-0.035em] text-foreground @min-[640px]/opportunity:text-2xl"><button onClick={onOpen} aria-label={`View ${entry.title}`} className="cursor-pointer text-start after:absolute after:inset-0 after:rounded-2xl hover:text-forest focus-visible:outline-none! focus-visible:after:outline-2 focus-visible:after:outline-offset-3 focus-visible:after:outline-forest">{entry.title}</button></h2>
         {entry.sourceCancelled ? <p className="mt-2 text-sm text-red-700">Cancelled by source</p> : null}
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{entry.summary}</p>
         <div className="mt-3.5 flex flex-wrap items-center gap-1.5">{entry.interests.slice(0, 2).map((interest) => <span key={interest} className="max-w-full rounded-md bg-soft px-2 py-1 text-[11px] leading-5 text-muted-foreground wrap-anywhere">{interest}</span>)}{entry.interests.length > 2 ? <span className="text-[11px] leading-5 text-muted-foreground">+{entry.interests.length - 2} interests</span> : null}</div>
@@ -43,10 +53,6 @@ export function OpportunityCard({ entry, context, busy, onBookmark, onOpen }: { 
         {entry.kind === "alumni" && entry.support ? <p className="flex items-start gap-2"><UsersRound className="mt-0.5 size-3.5 shrink-0" aria-hidden /><span>Support from {entry.support.offeredBy}</span></p> : null}
         <p className="text-[11px] text-muted-foreground">{entry.kind === "event" ? `${costLabels[entry.cost ?? "unknown"]}${entry.costNote ? ` · ${entry.costNote}` : ""}` : entry.kind === "alumni" ? "Confirmed support path" : "Public directory"}</p>
       </div>
-    </div>
-    <div className="mt-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl bg-sage/40 px-3 py-2">
-      <p className={`min-w-0 flex-1 basis-36 text-[11px] leading-5 wrap-anywhere ${match.reasons[0] ? "text-forest" : "text-muted-foreground"}`}>{match.reasons[0] ? <span className="flex items-start gap-1.5"><Check className="mt-0.5 size-3.5 shrink-0" aria-hidden />{match.reasons[0]}</span> : entry.primarySourceId ? "Imported from the original source" : "Curated by your organizers"}</p>
-      <button onClick={onOpen} aria-label={`View ${entry.title}`} className="inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-forest after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none! focus-visible:after:outline-2 focus-visible:after:outline-offset-3 focus-visible:after:outline-forest">View details</button>
     </div>
   </article>;
 }
@@ -66,6 +72,7 @@ export function OpportunityDetails({ entry, context, busy, error, notice, onBook
       {notice ? <p role="status" className="rounded-lg bg-sage px-3 py-2 text-xs leading-5 text-forest">{notice}</p> : null}
     </div>
   }><div className="space-y-5">
+    <OpportunityImage src={entry.imageUrl} detail />
     <div className="space-y-3"><div className="flex flex-wrap gap-2"><Badge>{kindLabels[entry.kind]}</Badge>{entry.organizerPick ? <Badge tone="gold">Organizer pick</Badge> : null}{entry.isSample ? <Badge>Sample listing</Badge> : null}</div><p className="text-base leading-7 text-foreground">{entry.summary}</p></div>
     <section aria-label="Listing details" className="space-y-3 rounded-2xl bg-soft p-4 text-sm leading-6 text-muted-foreground">
       <p className="flex items-start gap-2.5"><MapPin className="mt-1 size-4 shrink-0 text-forest" aria-hidden /><span>{entry.location}</span></p>

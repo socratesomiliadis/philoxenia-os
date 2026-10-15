@@ -3,7 +3,7 @@ import { convexTest } from "convex-test";
 import betterAuthTest from "@convex-dev/better-auth/test";
 import schema from "../convex/schema";
 import { api, components } from "../convex/_generated/api";
-import { defaultOpportunityFilters, filterOpportunities, matchOpportunity, parseSfDateTime, sfCalendarDate, type OpportunityInput } from "../lib/opportunities";
+import { defaultOpportunityFilters, filterOpportunities, isUpcomingOpportunity, matchOpportunity, parseSfDateTime, sfCalendarDate, type OpportunityInput } from "../lib/opportunities";
 import { templateGoals } from "../lib/mission";
 import { sampleOpportunities } from "../lib/sample-opportunities";
 
@@ -41,6 +41,18 @@ async function setup() {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("Stage 3 opportunity catalog", () => {
+  it("hides timed events at their start and past all-day events while retaining organizer records", async () => {
+    const { organizer, hustler, create } = await setup();
+    const now = Date.now();
+    await create({ ...event, status: "published", startAt: now - 1, endAt: now + 3_600_000 });
+    const upcoming = await create({ ...event, status: "published", sourceUrl: "https://example.com/upcoming", startAt: now + 60_000 });
+    await create({ ...event, status: "published", sourceUrl: "https://example.com/past-all-day", startAt: undefined, eventDate: sfCalendarDate(now - 86_400_000) });
+    const todayAllDay = await create({ ...event, status: "published", sourceUrl: "https://example.com/today-all-day", startAt: undefined, eventDate: sfCalendarDate(now) });
+    expect((await hustler.query(api.opportunities.list, {})).entries.map((entry) => entry._id)).toEqual(expect.arrayContaining([upcoming, todayAllDay]));
+    expect((await hustler.query(api.opportunities.list, {})).entries).toHaveLength(2);
+    expect((await organizer.query(api.opportunities.list, { management: true })).entries).toHaveLength(4);
+    expect(isUpcomingOpportunity({ ...event, startAt: now }, now)).toBe(false);
+  });
   it("keeps drafts and archived listings private, saves bookmarks idempotently per owner, and restores them on republish", async () => {
     const { t, organizer, hustler, cohortId, participant, create, update } = await setup();
     const id = await create();

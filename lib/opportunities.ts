@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TZDate } from "@date-fns/tz";
 import { dateLabel, SF_TIMEZONE } from "./cohort-dates";
+import { lumaImageUrl } from "./luma-images";
 
 export const opportunityKinds = ["event", "startup", "founder", "alumni"] as const;
 export const kindLabels = { event: "Event", startup: "Startup", founder: "Founder", alumni: "Alumni offer" };
@@ -33,6 +34,7 @@ export const opportunitySchema = z.object({
   location: z.string().trim().min(2, "Add a location or online venue.").max(160),
   sourceName: z.string().trim().min(2, "Name the original source.").max(100),
   sourceUrl: webUrl,
+  imageUrl: z.string().refine((value) => !!lumaImageUrl(value), "Use an HTTPS image from Luma’s CDN or Unsplash.").optional(),
   organizerPick: z.boolean(),
   status: z.enum(["draft", "published", "archived"]),
   startAt: z.number().int().min(0).max(8_640_000_000_000_000).optional(),
@@ -64,6 +66,12 @@ export type OpportunityInput = z.infer<typeof opportunitySchema>;
 export type Opportunity = OpportunityInput & { _id: string; saved: boolean; updatedAt: number; supportConfirmedAt?: number; isSample?: boolean;
   lastImportedAt?: number; sourceCancelled?: boolean; sourceStale?: boolean; approvalRequired?: boolean; importOverrides?: string[]; primarySourceId?: string };
 export type RecommendationContext = { interests: string[]; categories: MissionCategory[]; startDate?: string; endDate?: string };
+
+export function isUpcomingOpportunity(entry: Pick<OpportunityInput, "kind" | "startAt" | "eventDate">, now: number) {
+  if (entry.kind !== "event") return true;
+  if (entry.startAt !== undefined) return entry.startAt > now;
+  return !!entry.eventDate && entry.eventDate >= sfCalendarDate(now);
+}
 
 export function categoriesFromGoals(goals: { title: string; metric: string; firstActions: string[] }[]): MissionCategory[] {
   const text = goals.map((goal) => [goal.title, goal.metric, ...goal.firstActions].join(" ")).join(" ").toLowerCase();

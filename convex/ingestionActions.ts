@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { parseLumaCalendar } from "../lib/luma-ical";
+import { parseLumaEventImage } from "../lib/luma-images";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { DEFAULT_LUMA_FEED_URL, lumaFeedUrl, MAX_RECORDS, normalizeSerpEvent, SERP_QUERIES, type ImportedRecord } from "../lib/ingestion";
 
 async function body(url: string, init?: RequestInit): Promise<string> {
-  const response = await fetch(url, { ...init, signal: AbortSignal.timeout(20_000), redirect: "error" });
+  const response = await fetch(url, { ...init, signal: init?.signal ?? AbortSignal.timeout(20_000), redirect: "error" });
   if (!response.ok) throw new Error(`Provider returned HTTP ${response.status}. Check credentials, allowance, and provider status.`);
   // Bound payloads as well as row counts. Never persist raw provider errors or credentials.
   const reader = response.body?.getReader();
@@ -33,6 +34,19 @@ export const execute = internalAction({ args: { runId: v.id("importRuns") }, han
       const url = lumaFeedUrl(run.feedUrl ?? DEFAULT_LUMA_FEED_URL);
       const calendar = await body(url, { headers: { Accept: "text/calendar" } });
       const result = parseLumaCalendar(calendar, run.startedAt);
+      // Limit concurrency and keep artwork optional: an unavailable page must not fail the calendar import.
+      for (let offset = 0; offset < result.records.length; offset += 5) {
+        await Promise.all(result.records.slice(offset, offset + 5).map(async (record) => {
+          if (record.cancelled) return;
+          try {
+            const eventUrl = new URL(record.canonicalUrl);
+            if (!["luma.com", "lu.ma"].includes(eventUrl.hostname) || !/^\/[\w-]+\/?$/.test(eventUrl.pathname)) return;
+            const html = await body(`https://luma.com${eventUrl.pathname}`, { headers: { Accept: "text/html" }, signal: AbortSignal.timeout(5_000) });
+            const imageUrl = parseLumaEventImage(html);
+            if (imageUrl) record.opportunity.imageUrl = imageUrl;
+          } catch { /* Keep importing event details when artwork cannot be retrieved. */ }
+        }));
+      }
       await ctx.runMutation(internal.ingestion.complete, { runId, ...result });
       return;
     }

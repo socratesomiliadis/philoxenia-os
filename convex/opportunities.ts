@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireMember, requireOrganizer } from "./access";
 import { opportunityFields } from "./opportunityValidators";
-import { categoriesFromGoals, opportunitySchema, type RecommendationContext } from "../lib/opportunities";
+import { categoriesFromGoals, isUpcomingOpportunity, opportunitySchema, type RecommendationContext } from "../lib/opportunities";
 import { curatedOpportunities } from "../lib/curated-opportunities";
 
 export const list = query({
@@ -27,8 +27,9 @@ export const list = query({
       context.interests = onboarding?.answers.industries ?? [];
       context.categories = categoriesFromGoals(onboarding?.confirmedGoals ?? []);
     }
+    const now = Date.now();
     return {
-      entries: entries.map((entry) => {
+      entries: entries.filter((entry) => args.management || isUpcomingOpportunity(entry, now)).map((entry) => {
         const { createdBy, ...listing } = entry;
         return { ...listing, ...(args.management ? { createdBy } : {}), saved: saved.has(entry._id), ...(entry.lastImportedAt ? { sourceStale: Date.now() - entry.lastImportedAt > 8 * 86_400_000 } : {}) };
       }),

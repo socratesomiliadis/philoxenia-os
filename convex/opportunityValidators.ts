@@ -8,6 +8,7 @@ export const opportunityFields = {
   categories: v.array(v.union(v.literal("connect"), v.literal("feedback"), v.literal("learn"), v.literal("give-back"))),
   area: v.union(v.literal("sf"), v.literal("bay-area"), v.literal("online")),
   location: v.string(), sourceName: v.string(), sourceUrl: v.string(), organizerPick: v.boolean(),
+  imageUrl: v.optional(v.string()),
   status: v.union(v.literal("draft"), v.literal("published"), v.literal("archived")),
   startAt: v.optional(v.number()), endAt: v.optional(v.number()),
   eventDate: v.optional(v.string()), eventEndDate: v.optional(v.string()),

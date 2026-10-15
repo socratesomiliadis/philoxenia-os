@@ -140,6 +140,25 @@ describe("Stage 6 persistence and authorization", () => {
     vi.setSystemTime(Date.parse("2026-11-01T12:00:00Z"));
     expect(await run("serpapi")).toBeTruthy();
   });
+  it("allows immediate Luma refreshes after completion or failure while retaining active-run and Google Events limits", async () => {
+    const { t, organizer, configure, run } = await setup(); await configure();
+    const first = await organizer.mutation(api.ingestion.refresh, { provider: "luma" });
+    await expect(organizer.mutation(api.ingestion.refresh, { provider: "luma" })).rejects.toThrow("already running");
+    await t.mutation(internal.ingestion.claim, { runId: first! });
+    await expect(organizer.mutation(api.ingestion.refresh, { provider: "luma" })).rejects.toThrow("already running");
+    await t.mutation(internal.ingestion.complete, { runId: first!, records: [record()], skipped: 0 });
+    const second = await run();
+    expect(second).not.toBe(first);
+    await t.mutation(internal.ingestion.fail, { runId: second, error: "Provider unavailable" });
+    await t.mutation(internal.ingestion.scheduled, {});
+    expect((await organizer.query(api.ingestion.status, {})).runs).toHaveLength(2);
+    expect(await run()).toBeTruthy();
+
+    await configure("serpapi");
+    const paid = await run("serpapi");
+    await t.mutation(internal.ingestion.fail, { runId: paid, error: "Provider unavailable" });
+    await expect(run("serpapi")).rejects.toThrow("once per hour");
+  });
   it("selects daily/weekly cadence, claims work once, and expires stuck imports", async () => {
     const { t, organizer, configure } = await setup(); await configure();
     expect((await organizer.query(api.ingestion.status, {})).intervalDays).toBe(7);
@@ -167,17 +186,29 @@ describe("Stage 6 persistence and authorization", () => {
   });
   it("fetches a Luma calendar without a key or charge reservation and publishes only when configured", async () => {
     const { t, organizer, configure } = await setup(); await configure("luma", 200, true);
-    const fetcher = vi.fn().mockResolvedValue(new Response(lumaCalendar())); vi.stubGlobal("fetch", fetcher);
+    const imageUrl = "https://images.lumacdn.com/uploads/builders.png";
+    const fetcher = vi.fn().mockResolvedValueOnce(new Response(lumaCalendar())).mockResolvedValueOnce(new Response(`<meta property="og:image" content="${imageUrl}">`)); vi.stubGlobal("fetch", fetcher);
     const runId = (await organizer.mutation(api.ingestion.refresh, { provider: "luma" }))!;
     await t.action(internal.ingestionActions.execute, { runId });
     expect(new URL(fetcher.mock.calls[0][0]).hostname).toBe("api.luma.com");
     expect(fetcher.mock.calls[0][1].headers).toEqual({ Accept: "text/calendar" });
-    await t.action(internal.ingestionActions.execute, { runId }); expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher.mock.calls[1][0]).toBe("https://luma.com/builders");
+    await t.action(internal.ingestionActions.execute, { runId }); expect(fetcher).toHaveBeenCalledTimes(2);
     const entries = (await organizer.query(api.opportunities.list, { management: true })).entries;
-    expect(entries).toHaveLength(1); expect(entries[0].status).toBe("published"); expect(entries[0].cost).toBe("unknown");
+    expect(entries).toHaveLength(1); expect(entries[0].status).toBe("published"); expect(entries[0].cost).toBe("unknown"); expect(entries[0].imageUrl).toBe(imageUrl);
     const status = await organizer.query(api.ingestion.status, {});
     expect(status.runs[0]).toMatchObject({ status: "succeeded", added: 1, reservation: 0 });
     expect(status.sources[0].feedUrl).toBe(DEFAULT_LUMA_FEED_URL);
+
+    // Ordinary organizer edits and an unavailable artwork page must preserve the existing image.
+    await organizer.mutation(api.opportunities.save, { opportunityId: entries[0]._id, expectedUpdatedAt: entries[0].updatedAt, opportunity: opportunitySchema.parse({ ...entries[0], title: "Organizer's event title" }) });
+    vi.setSystemTime(now + DAY);
+    fetcher.mockResolvedValueOnce(new Response(lumaCalendar())).mockRejectedValueOnce(new Error("Page unavailable"));
+    const refreshId = (await organizer.mutation(api.ingestion.refresh, { provider: "luma" }))!;
+    await t.action(internal.ingestionActions.execute, { runId: refreshId });
+    const refreshed = (await organizer.query(api.opportunities.list, { management: true })).entries[0];
+    expect(refreshed).toMatchObject({ imageUrl, title: "Organizer's event title" });
+    expect((await organizer.query(api.ingestion.status, {})).runs[0].status).toBe("succeeded");
   });
   it("preserves the catalog on malformed feeds and applies UID-only cancellations without deleting Sprint snapshots", async () => {
     const { t, organizer, imported } = await setup(); const entry = await imported();

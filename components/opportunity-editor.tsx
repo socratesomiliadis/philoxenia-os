@@ -45,7 +45,7 @@ export function OpportunityEditor({ entry, onClose, onSave }: { entry?: Opportun
   async function submit(event: FormEvent) {
     event.preventDefault(); setError(null);
     try {
-      const input = opportunitySchema.safeParse({ kind, title, summary, description, interests, categories, area, location, sourceName, sourceUrl, organizerPick, status,
+      const input = opportunitySchema.safeParse({ kind, title, summary, description, interests, categories, area, location, sourceName, sourceUrl, organizerPick, status, imageUrl: entry?.imageUrl,
         ...(kind === "event" ? { ...(allDay ? { eventDate: eventDate || undefined, eventEndDate: lastDate ? shiftDate(lastDate, 1) : undefined } : { startAt: start ? parseSfDateTime(start) : undefined, endAt: end ? parseSfDateTime(end) : undefined }), cost, costNote: costNote.trim() || undefined } : {}),
         ...(kind === "alumni" ? { support: { offeredBy, pathway, url: supportUrl, availability } } : {}),
       });

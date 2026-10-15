@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { defaultOpportunityFilters, filterOpportunities, matchOpportunity, opportunitySortTime, type Opportunity, type OpportunityFilters, type RecommendationContext } from "@/lib/opportunities";
+import { defaultOpportunityFilters, filterOpportunities, isUpcomingOpportunity, matchOpportunity, opportunitySortTime, type Opportunity, type OpportunityFilters, type RecommendationContext } from "@/lib/opportunities";
 import { sampleOpportunities, sampleRecommendationContext } from "@/lib/sample-opportunities";
 import { useWorkspace, type Cohort } from "./workspace-context";
 import { InlineError, LoadingState, errorMessage } from "./ui";
@@ -37,12 +37,27 @@ function ConnectedOpportunities() {
   return <OpportunitiesView key={cohort?._id ?? "no-cohort"} entries={data.entries} context={data.context} cohorts={cohorts} cohort={cohort} onSelectCohort={setSelectedId} onBookmark={async (entry) => { await setBookmark({ opportunityId: entry._id as Id<"opportunities">, saved: !entry.saved }); }} />;
 }
 
-function OpportunitiesView({ entries, context, cohorts, cohort, onSelectCohort, onBookmark }: {
+function OpportunitiesView({ entries: allEntries, context, cohorts, cohort, onSelectCohort, onBookmark }: {
   entries: Opportunity[]; context: RecommendationContext; cohorts: Cohort[]; cohort?: Cohort;
   onSelectCohort?: (id: string) => void; onBookmark: (entry: Opportunity) => Promise<void>;
 }) {
   const { preview, viewer } = useWorkspace();
   const router = useRouter();
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    let timer: number;
+    function update() {
+      const current = Date.now();
+      setNow(current);
+      const nextStart = allEntries.reduce((next, entry) => entry.kind === "event" && entry.startAt !== undefined && entry.startAt > current ? Math.min(next, entry.startAt) : next, current + 60_000);
+      timer = window.setTimeout(update, nextStart - current);
+    }
+    function resume() { window.clearTimeout(timer); update(); }
+    update();
+    window.addEventListener("focus", resume);
+    return () => { window.clearTimeout(timer); window.removeEventListener("focus", resume); };
+  }, [allEntries]);
+  const entries = allEntries.filter((entry) => isUpcomingOpportunity(entry, now));
   const [filters, setFilters] = useState<OpportunityFilters>(defaultOpportunityFilters);
   const [datePreset, setDatePreset] = useState("any");
   const [sort, setSort] = useState("recommended");
@@ -77,7 +92,7 @@ function OpportunitiesView({ entries, context, cohorts, cohort, onSelectCohort, 
     {invalidRange && eventFilters ? <InlineError message="Choose an end date on or after the start date." /> : null}
     <section aria-label="Opportunity results" className="space-y-4">
       <OpportunityResultsHeading count={invalidRange && eventFilters ? 0 : visible.length} filters={filters} sort={sort} onSort={setSort} />
-      {visible.length && !(invalidRange && eventFilters) ? <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,360px),1fr))] gap-4">{visible.map((entry) => <OpportunityCard key={entry._id} entry={entry} context={context} busy={busy} onBookmark={bookmark} onOpen={() => { setError(null); setSelected(entry._id); }} />)}</div> : <OpportunityEmptyState entries={entries} filters={filters} organizer={!!viewer?.isOrganizer} preview={preview} invalidRange={invalidRange && eventFilters} onReset={reset} />}
+      {visible.length && !(invalidRange && eventFilters) ? <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,360px),1fr))] gap-4">{visible.map((entry) => <OpportunityCard key={entry._id} entry={entry} busy={busy || now === 0} onBookmark={bookmark} onOpen={() => { setError(null); setSelected(entry._id); }} />)}</div> : <OpportunityEmptyState entries={entries} filters={filters} organizer={!!viewer?.isOrganizer} preview={preview} invalidRange={invalidRange && eventFilters} onReset={reset} />}
     </section>
     {selected ? <OpportunityDetails entry={entries.find((entry) => entry._id === selected)} context={context} busy={busy} error={error} onBookmark={bookmark} onClose={() => setSelected(null)} onAddToSprint={cohort && (preview || viewer?.participantCohortIds.includes(cohort._id)) ? () => { const entry = entries.find((item) => item._id === selected); if (entry) { setAdding(entry); } } : undefined} /> : null}
     {adding && cohort ? <OpportunitySprintEditor opportunity={adding} cohortId={cohort._id} onClose={() => { setAdding(null); }} onAdded={() => { setAdding(null); toast.success("Added to your Sprint", { description: "Review your schedule and choose your next step.", action: { label: "Open Sprint", onClick: () => router.push(preview ? "/preview/sprint" : "/sprint") } }); }} /> : null}
