@@ -71,16 +71,16 @@ export function PageHeading({ title, description, action }: { title: string; des
 }
 
 export function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <section className={`min-w-0 rounded-[24px] border border-line bg-white ${className}`}>{children}</section>;
+  return <section className={cn("min-w-0 rounded-[24px] border border-line bg-white", className)}>{children}</section>;
 }
 
 export function IconTile({ icon: Icon, tone = "neutral", className = "" }: { icon: LucideIcon; tone?: "neutral" | "green" | "warm"; className?: string }) {
-  const colors = { neutral: "bg-soft text-muted-foreground", green: "bg-soft text-forest", warm: "bg-warm text-[#806832]" };
+  const colors = { neutral: "bg-soft text-muted-foreground", green: "bg-sage text-forest", warm: "bg-gold-soft text-gold-foreground" };
   return <span className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl ${colors[tone]} ${className}`}><Icon className="size-[19px]" strokeWidth={1.7} aria-hidden /></span>;
 }
 
 export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "green" | "gold" }) {
-  const colors = { neutral: "bg-soft text-muted-foreground", green: "bg-sage text-forest", gold: "bg-warm text-[#806832]" };
+  const colors = { neutral: "bg-soft text-muted-foreground", green: "bg-sage text-forest", gold: "bg-gold-soft text-gold-foreground" };
   return <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs leading-5 ${colors[tone]}`}>{children}</span>;
 }
 

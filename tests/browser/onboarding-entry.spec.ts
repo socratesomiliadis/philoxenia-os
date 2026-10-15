@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { emptyAnswers, templateGoals } from "../../lib/mission";
+import { sampleSprintData } from "../../lib/sample-sprint";
 import { mockSession } from "./helpers/mock-session";
 
 // Exercise the real auth gateway and routes with an isolated, mocked session and
@@ -27,6 +28,7 @@ test("an invited sign-in provisions the profile, requires onboarding, resumes dr
         case "cohorts:list": return [cohort];
         case "onboarding:required": return organizer || onboarding?.confirmedGoals ? null : cohort._id;
         case "onboarding:get": return onboarding;
+        case "sprint:get": return { ...sampleSprintData, cohortId: cohort._id, cohortName: cohort.name };
         default: throw new Error(`Unexpected query in onboarding entry test: ${path}`);
       }
     },

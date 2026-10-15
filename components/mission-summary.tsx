@@ -26,7 +26,7 @@ function ConnectedSummary({ cohort }: { cohort: Cohort }) {
 }
 
 function Summary({ data, href = "/onboarding", loading, unavailable, organizer }: { data?: { confirmedGoals?: MissionGoal[] } | null; href?: string; loading?: boolean; unavailable?: boolean; organizer?: boolean }) {
-  return <Panel className="flex flex-col p-5 @min-[640px]:p-6">
+  return <Panel className="@container flex flex-col p-5 @min-[640px]:p-6">
     <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2.5"><Target className="size-[18px] text-forest" aria-hidden /><h2 className="text-base font-medium text-foreground">{data?.confirmedGoals ? <Link href={href} className="rounded-sm underline decoration-forest/20 underline-offset-4 hover:decoration-forest">Your personal mission</Link> : organizer && unavailable ? "Cohort missions" : "Your personal mission"}</h2></div><Badge tone={data?.confirmedGoals ? "green" : "neutral"}>{data?.confirmedGoals ? "Confirmed" : organizer && unavailable ? "Organizer view" : data ? "In progress" : "Three goals"}</Badge></div>
     {loading ? <p role="status" className="mt-6 text-sm text-muted-foreground">Loading your mission…</p> : data?.confirmedGoals ? <div className="mt-5"><MissionGoals goals={data.confirmedGoals} layout="overview" /></div> : <>
       <h3 className="mt-5 text-2xl leading-8 font-medium tracking-tight text-foreground">{organizer && unavailable ? "Help each Hustler find a direction." : "Give your Sprint a direction."}</h3>

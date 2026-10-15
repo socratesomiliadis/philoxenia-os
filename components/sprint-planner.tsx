@@ -35,7 +35,7 @@ export function SprintSummary({ entries, outcomes }: { entries: SprintEntry[]; o
     { label: "Completed", count: entries.filter((entry) => entry.progress.status === "completed").length, icon: CheckCheck },
     { label: "Outcomes", count: outcomes.reduce((sum, item) => sum + item.quantity, 0), icon: Trophy },
   ];
-  return <dl aria-label="Sprint overview" className="grid grid-cols-3 gap-x-3 gap-y-5 rounded-2xl bg-soft px-4 py-5 @min-[640px]:px-6">
+  return <dl aria-label="Sprint overview" className="grid grid-cols-3 gap-x-3 gap-y-5 rounded-2xl border border-forest/10 bg-sage/50 px-4 py-5 @min-[640px]:px-6">
     {stats.map(({ label, count, icon: Icon }) => <div key={label} className="flex min-w-0 flex-col gap-2 @min-[640px]:flex-row @min-[640px]:items-center @min-[640px]:gap-3">
       <Icon className="hidden size-4 shrink-0 text-muted-foreground @min-[640px]:block" strokeWidth={1.6} aria-hidden />
       <dt className="text-xs leading-5 text-muted-foreground @min-[640px]:text-sm">{label}</dt>
@@ -66,7 +66,7 @@ export function SprintDayPicker({ days, entries, selectedDay, view, onDay, onVie
               return <button key={date} aria-label={`Day ${weekIndex * 7 + index + 1}, ${dateLabel(date, "MMM d")}`} aria-pressed={active} aria-describedby={count ? `sprint-day-${date}-count` : undefined} onClick={() => onDay(date)} className={`flex min-h-[88px] min-w-11 flex-col items-center justify-center gap-1.5 rounded-xl border py-3 tabular-nums transition-colors duration-150 ${active ? "border-forest bg-forest text-white" : "border-transparent bg-soft text-muted-foreground hover:border-line hover:bg-warm"}`}>
                 <span className={`text-[11px] leading-4 ${active ? "text-white/75" : "text-muted-foreground"}`}>{dateLabel(date, "EEE")}</span>
                 <span className={`text-xl leading-6 font-medium tracking-tight ${active ? "text-white" : "text-foreground"}`}>{dateLabel(date, "d")}</span>
-                <span className={`size-1 rounded-full ${count ? active ? "bg-white" : "bg-forest" : "bg-transparent"}`} aria-hidden />
+                <span className={`size-1 rounded-full ${count ? active ? "bg-gold" : "bg-forest" : "bg-transparent"}`} aria-hidden />
                 {count ? <span id={`sprint-day-${date}-count`} className="sr-only">{count} scheduled {count === 1 ? "activity" : "activities"}</span> : null}
               </button>;
             })}

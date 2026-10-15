@@ -51,7 +51,7 @@ export function OpportunitySearch({ entries, filters, moreFilters, onFiltersOpen
       </div>
     </div>
     <div role="group" aria-label="Opportunity types" className="flex flex-wrap gap-1.5">
-      {opportunityTabs.map((tab) => <button key={tab.value} aria-pressed={filters.kind === tab.value} onClick={() => onUpdate({ kind: tab.value })} className={`min-h-10 rounded-lg px-3.5 py-2 text-sm transition-colors duration-150 ${filters.kind === tab.value ? "bg-white font-medium text-forest shadow-control" : "text-muted-foreground hover:bg-warm hover:text-foreground"}`}>{tab.label}</button>)}
+      {opportunityTabs.map((tab) => <button key={tab.value} aria-pressed={filters.kind === tab.value} onClick={() => onUpdate({ kind: tab.value })} className={`min-h-10 rounded-lg px-3.5 py-2 text-sm transition-colors duration-150 ${filters.kind === tab.value ? "bg-sage font-medium text-forest shadow-control" : "text-muted-foreground hover:bg-warm hover:text-foreground"}`}>{tab.label}</button>)}
     </div>
   </div>;
 }

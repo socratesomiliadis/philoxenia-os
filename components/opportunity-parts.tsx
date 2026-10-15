@@ -27,7 +27,7 @@ export function OpportunityCard({ entry, context, busy, onBookmark, onOpen }: { 
   const match = matchOpportunity(entry, context);
   const Icon = kindIcons[entry.kind];
   return <article className="@container/opportunity group relative flex min-w-0 flex-col rounded-2xl border border-line bg-white p-5 transition-colors duration-150 hover:border-forest/25 focus-within:border-forest/40">
-    <div className="mb-4 flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2.5"><span className={`inline-flex size-9 shrink-0 items-center justify-center rounded-xl ${entry.kind === "alumni" ? "bg-sage text-forest" : "bg-soft text-muted-foreground"}`}><Icon className="size-[18px]" strokeWidth={1.7} aria-hidden /></span><span className="text-xs text-muted-foreground">{kindLabels[entry.kind]}</span>{entry.organizerPick ? <span className="hidden rounded-md bg-warm px-2 py-1 text-[11px] text-[#806832] @min-[380px]/opportunity:inline">Organizer pick</span> : null}</div><BookmarkButton entry={entry} busy={busy} onBookmark={onBookmark} /></div>
+    <div className="mb-4 flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2.5"><span className={`inline-flex size-9 shrink-0 items-center justify-center rounded-xl ${entry.kind === "alumni" ? "bg-sage text-forest" : "bg-soft text-muted-foreground"}`}><Icon className="size-[18px]" strokeWidth={1.7} aria-hidden /></span><span className="text-xs text-muted-foreground">{kindLabels[entry.kind]}</span>{entry.organizerPick ? <span className="hidden rounded-md bg-gold-soft px-2 py-1 text-[11px] text-gold-foreground @min-[380px]/opportunity:inline">Organizer pick</span> : null}</div><BookmarkButton entry={entry} busy={busy} onBookmark={onBookmark} /></div>
     <div className="grid min-w-0 flex-1 gap-x-8 gap-y-4 @min-[640px]/opportunity:grid-cols-[minmax(0,1fr)_260px]">
       <div className="min-w-0 wrap-anywhere">
         <h2 className="text-xl leading-7 font-medium tracking-[-0.035em] text-foreground @min-[640px]/opportunity:text-2xl">{entry.title}</h2>
@@ -42,7 +42,7 @@ export function OpportunityCard({ entry, context, busy, onBookmark, onOpen }: { 
         <p className="text-[11px] text-muted-foreground">{entry.kind === "event" ? `${costLabels[entry.cost ?? "unknown"]}${entry.costNote ? ` · ${entry.costNote}` : ""}` : entry.kind === "alumni" ? "Confirmed support path" : "Public directory"}</p>
       </div>
     </div>
-    <div className="mt-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl bg-soft/75 px-3 py-2">
+    <div className="mt-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl bg-sage/40 px-3 py-2">
       <p className={`min-w-0 flex-1 basis-36 text-[11px] leading-5 wrap-anywhere ${match.reasons[0] ? "text-forest" : "text-muted-foreground"}`}>{match.reasons[0] ? <span className="flex items-start gap-1.5"><Check className="mt-0.5 size-3.5 shrink-0" aria-hidden />{match.reasons[0]}</span> : entry.primarySourceId ? "Imported from the original source" : "Curated by your organizers"}</p>
       <button onClick={onOpen} aria-label={`View ${entry.title}`} className="inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-forest after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none! focus-visible:after:outline-2 focus-visible:after:outline-offset-3 focus-visible:after:outline-forest">View details</button>
     </div>

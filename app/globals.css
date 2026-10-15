@@ -21,6 +21,9 @@
   --border: #e4e1da;
   --input: #dedbd2;
   --ring: #003c2e;
+  --gold: #d4a844;
+  --gold-soft: #f7efd9;
+  --gold-foreground: #795b18;
   --radius: 0.75rem;
 }
 
@@ -33,7 +36,9 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --color-forest: var(--primary);
-  --color-gold: #b18b44;
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-foreground: var(--gold-foreground);
   --color-canvas: var(--background);
   --color-muted: var(--muted);
   --color-line: #e4e1da;
