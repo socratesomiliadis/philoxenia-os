@@ -29,6 +29,30 @@ function setup() {
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe("email and password authentication", () => {
+  it.each(["http://localhost:3000", "https://philoxenia-os.socrates.fyi"])("uses the requesting app origin for email and Google callbacks: %s", async (origin) => {
+    const { t, emails } = setup();
+    vi.stubEnv("SITE_URL", "https://philoxenia-os.socrates.fyi");
+    vi.stubEnv("AUTH_TRUSTED_ORIGINS", "http://localhost:3000");
+    vi.stubEnv("GOOGLE_CLIENT_ID", "test-google-client");
+    vi.stubEnv("GOOGLE_CLIENT_SECRET", "test-google-secret");
+    const headers = { "Content-Type": "application/json", Origin: origin,
+      "x-better-auth-forwarded-host": new URL(origin).host,
+      "x-better-auth-forwarded-proto": new URL(origin).protocol.slice(0, -1) };
+    const signup = await t.fetch("/api/auth/sign-up/email", { method: "POST", headers,
+      body: JSON.stringify({ name: "Invited Hustler", email: "invited@example.com", password: "test-password-123", callbackURL: "/sign-in" }) });
+    expect(signup.status).toBe(200);
+    expect(new URL(emails[0].text.match(/https?:\/\/\S+/)![0]).origin).toBe(origin);
+    const social = await t.fetch("/api/auth/sign-in/social", { method: "POST", headers,
+      body: JSON.stringify({ provider: "google", callbackURL: "/sign-in", disableRedirect: true }) });
+    expect(social.status).toBe(200);
+    const authorization = new URL((await social.json()).url);
+    expect(authorization.searchParams.get("redirect_uri")).toBe(`${origin}/api/auth/callback/google`);
+    const rejected = await t.fetch("/api/auth/sign-in/social", { method: "POST",
+      headers: { ...headers, Origin: "https://untrusted.example" },
+      body: JSON.stringify({ provider: "google", callbackURL: "https://untrusted.example/sign-in" }) });
+    expect(rejected.status).toBe(403);
+  });
+
   it("reports email readiness independently of Google and requires mail configuration", async () => {
     const { t } = setup();
     expect(await t.query(api.auth.readiness, {})).toEqual({ google: false, emailAndPassword: true });

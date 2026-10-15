@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:release": "convex deploy --cmd \"node scripts/production-build.mjs\" --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL",
+    "build:release": "node scripts/production-build.mjs",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",

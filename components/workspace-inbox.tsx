@@ -21,7 +21,7 @@ export function WorkspaceInbox() {
   }
   return <Popover open={open} onOpenChange={(next) => { setOpen(next); setError(null); }}>
     <PopoverTrigger render={<ActionButton appearance="secondary" aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`} className="min-h-10 px-3" />}><Bell className="size-4" aria-hidden />{unread ? <span className="text-xs tabular-nums">{unread > 99 ? "99+" : unread}</span> : null}</PopoverTrigger>
-    <PopoverContent align="end" sideOffset={12} className="w-[min(24rem,calc(100vw-2rem))] gap-0 overflow-hidden rounded-2xl surface-card p-0 text-foreground shadow-lg ring-0 motion-reduce:animate-none">
+    <PopoverContent align="end" sideOffset={12} className="w-[min(24rem,calc(100vw-2rem))] gap-0 overflow-hidden rounded-2xl surface-overlay p-0 text-foreground shadow-lg ring-0 motion-reduce:animate-none">
       <div className="flex items-center justify-between gap-3 px-5 py-4"><PopoverTitle className="text-base font-medium">Notifications</PopoverTitle>{unread ? <Badge tone="green">{unread} unread</Badge> : null}</div>
       <div className="scrollbar-thin max-h-[min(26rem,calc(100dvh-12rem))] overflow-y-auto overscroll-contain">
         {!notifications ? <p role="status" className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin" aria-hidden />Loading notifications…</p> : notifications.length ? <ul className="space-y-1 px-2 pb-2">{notifications.map((item) => <li key={item._id} className={`space-y-3 rounded-xl px-3 py-4 ${!item.readAt ? "bg-sage/30" : ""}`}>

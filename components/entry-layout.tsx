@@ -6,7 +6,7 @@ import sanFrancisco from "@/public/images/san-francisco-golden-gate.jpg";
 
 export function EntryLayout({ children, onboarding = false }: { children: ReactNode; onboarding?: boolean }) {
   const HeroHeading = onboarding ? "p" : "h1";
-  return <main className={`grid min-h-dvh gap-0 bg-white p-3 sm:p-4 lg:h-dvh lg:overflow-hidden ${onboarding ? "grid-rows-[auto_1fr] lg:grid-rows-1 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]" : "lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)]"}`}>
+  return <main className={`grid min-h-dvh gap-0 bg-soft p-3 sm:p-4 lg:h-dvh lg:overflow-hidden ${onboarding ? "grid-rows-[auto_1fr] lg:grid-rows-1 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]" : "lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)]"}`}>
     <section className={`relative isolate flex min-w-0 flex-col justify-between overflow-hidden rounded-[20px] bg-forest p-6 text-white sm:p-10 lg:min-h-0 lg:p-12 2xl:p-16 ${onboarding ? "min-h-24 sm:min-h-32" : "min-h-80 sm:min-h-[420px]"}`}>
       <Image src={sanFrancisco} alt="The Golden Gate Bridge rising through San Francisco's coastal fog at sunrise" fill preload placeholder="blur" sizes="(min-width: 1024px) max(52vw, 150vh), (min-width: 640px) max(100vw, 630px), max(100vw, 540px)" className="-z-20 object-cover object-[20%_center]" />
       <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-b from-black/25 via-black/15 to-[#102820]/85" />
@@ -21,5 +21,5 @@ export function EntryLayout({ children, onboarding = false }: { children: ReactN
 }
 
 export function EntryCard({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`@container/entry min-w-0 rounded-[24px] surface-card p-5 sm:p-8 xl:p-9 ${className}`}>{children}</div>;
+  return <div className={`@container/entry min-w-0 rounded-[24px] surface-overlay p-5 sm:p-8 xl:p-9 ${className}`}>{children}</div>;
 }

@@ -104,7 +104,7 @@ export function ChoiceField({ label, value, options, onChange, disabled = false,
     {!compact ? <FieldLabel htmlFor={id} className="text-xs font-medium text-muted-foreground">{label}</FieldLabel> : null}
     <Select open={open} onOpenChange={setOpen} value={key(value)} items={options.map((option) => ({ value: key(option.value), label: option.label }))} onValueChange={(value) => onChange(value === "__empty__" ? "" : String(value ?? ""))} disabled={disabled}>
       <SelectTrigger id={id} size={compact ? "sm" : "default"} aria-label={compact ? label : undefined} className="w-full"><SelectValue className="min-w-0 flex-1 truncate" /></SelectTrigger>
-      <SelectContent align="start" alignItemWithTrigger={false} aria-label={label} className="scrollbar-thin max-h-64 max-w-[calc(100vw-32px)] rounded-xl surface-card p-1 shadow-lg ring-0">{options.map((option) => <SelectItem key={key(option.value)} value={key(option.value)} disabled={option.disabled} className="min-h-10 rounded-lg px-3 py-2 pe-8 text-sm text-foreground data-selected:bg-sage data-selected:text-forest"><span className="min-w-0 flex-1 whitespace-normal wrap-anywhere">{option.label}</span></SelectItem>)}</SelectContent>
+      <SelectContent align="start" alignItemWithTrigger={false} aria-label={label} className="scrollbar-thin max-h-64 max-w-[calc(100vw-32px)] rounded-xl surface-overlay p-1 shadow-lg ring-0">{options.map((option) => <SelectItem key={key(option.value)} value={key(option.value)} disabled={option.disabled} className="min-h-10 rounded-lg px-3 py-2 pe-8 text-sm text-foreground data-selected:bg-soft data-selected:text-forest"><span className="min-w-0 flex-1 whitespace-normal wrap-anywhere">{option.label}</span></SelectItem>)}</SelectContent>
     </Select>
   </FormField>;
 }

@@ -22,9 +22,15 @@ async function sendAuthEmail(email: string, subject: string, text: string) {
 }
 
 export const createAuth = (ctx: GenericCtx<DataModel>) => betterAuth({
-  baseURL: process.env.SITE_URL,
+  // The Next.js auth proxy forwards the original host/protocol. Resolve callbacks
+  // per request so localhost and the hosted app can share this deployment.
+  baseURL: process.env.SITE_URL ? {
+    allowedHosts: [process.env.SITE_URL, ...(process.env.AUTH_TRUSTED_ORIGINS ?? "").split(",")]
+      .map((origin) => origin.trim()).filter(Boolean),
+    fallback: process.env.SITE_URL,
+  } : undefined,
   secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins: process.env.SITE_URL ? [process.env.SITE_URL] : [],
+  advanced: { trustedProxyHeaders: true, disableOriginCheck: false },
   database: authComponent.adapter(ctx),
   emailAndPassword: {
     enabled: true,

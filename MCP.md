@@ -1,11 +1,11 @@
 # Organiser MCP access
 
-Philoxenia exposes a remote Streamable HTTP MCP server at **`https://YOUR_APP/api/mcp`**. Organisers can use OAuth sign-in or a personal bearer token. Permanent user deletion stays in the app. Participants and alumni cannot create organiser connections.
+Philoxenia exposes a remote Streamable HTTP MCP server at **`https://philoxenia-os.socrates.fyi/api/mcp`**. Organisers can use OAuth sign-in or a personal bearer token. Permanent user deletion stays in the app. Participants and alumni cannot create organiser connections.
 
 ## Enable it
 
-1. Deploy the Convex schema/functions and the Next.js app together using the existing release workflow.
-2. Set `SITE_URL` to the app's exact canonical origin in **both Next.js and Convex**. Use HTTPS in production; local development can use `http://localhost:3000`. These values must agree because credentials are bound to `/api/mcp` at that origin. No new signing secret or external OAuth provider is required; browser sign-in uses the existing Better Auth setup.
+1. Publish the shared development backend with `pnpm exec convex dev --once`, then deploy the Next.js app as described in [RELEASE.md](RELEASE.md).
+2. Set `SITE_URL=https://philoxenia-os.socrates.fyi` in **local Next.js, Vercel Production, and the shared Convex dev deployment**. MCP uses one canonical origin because credentials are bound to that resource. Browser authentication supports localhost too, using Convex's `AUTH_TRUSTED_ORIGINS=http://localhost:3000`. Connect MCP clients through the hosted URL. Reconnect clients and issue new personal tokens if they used a different canonical origin previously.
 3. Sign in as a verified, provisioned organiser and open **Command Center → Settings → Connect your agent**. Copy the server URL.
 4. Add it in your client and approve access in Philoxenia. Each approval creates a separate revocable connection. An agent may request read access, or read and write access; review the consent screen before allowing it.
 

@@ -8,7 +8,7 @@ Implemented: responsive participant/organizer navigation, Google and verified em
 
 Stack: Next.js 16.4, React 19, shadcn/ui (Base UI), Sonner, Tailwind v4, Convex, Better Auth, and pnpm. Better Auth is pinned to the version supported by the Convex integration.
 
-Stage 7 adds participant help check-ins (including during onboarding), explained organizer attention flags, private participant follow-up notes, cohort summaries, four CSV exports, visible Open Doors coordinator names, and backend configuration/delivery/import status. Production launch at **https://philoxenia-os.vercel.app** remains pending the production Convex deployment, OAuth/email setup, second organizer, and live pilot rehearsal. Follow [the release runbook](RELEASE.md) for environment separation, `pnpm build:release`, acceptance checks, and operations.
+Stage 7 adds participant help check-ins (including during onboarding), explained organizer attention flags, private participant follow-up notes, cohort summaries, four CSV exports, visible Open Doors coordinator names, and backend configuration/delivery/import status. The hosted frontend is **https://philoxenia-os.socrates.fyi**. Both it and localhost intentionally use the cloud Convex development deployment **fine-starfish-961**, sharing users, data, functions, and secrets. Follow [the release runbook](RELEASE.md) for domain/OAuth configuration, `pnpm build:release`, acceptance checks, and operations.
 
 ## Run locally
 
@@ -28,7 +28,7 @@ pnpm dev
 
 The backend CLI creates `.env.local`. `NEXT_PUBLIC_CONVEX_SITE_URL` must be the deployment's HTTP actions URL (`.convex.site` for cloud, port 3211 for local), while `NEXT_PUBLIC_CONVEX_URL` is the client URL (`.convex.cloud` for cloud, port 3210 for local).
 
-For this initial build, an anonymous local Convex deployment was initialized and the backend organizer allowlist was set to `s.omiliadis@gmail.com`. No cloud project or Google OAuth client was created. The local backend authentication secret has already been generated securely; it is not committed.
+The current `.env.local` selects the cloud development deployment `dev:fine-starfish-961`. Keep that selection for local work. Set `SITE_URL=https://philoxenia-os.socrates.fyi` in Next.js and on Convex for canonical email/MCP links; set `AUTH_TRUSTED_ORIGINS=http://localhost:3000` on Convex so authentication also works locally. Existing backend credentials are kept in Convex, outside source control.
 
 Until a sign-in method is configured, development routes show a clearly marked sample workspace. Onboarding and opportunity previews allow local-only interactions; organizer writes are disabled. `/preview` is also available in development; it returns 404 in production. Preview never creates a session or authorizes backend access. Production shows the sign-in screen when configuration is incomplete.
 
@@ -36,18 +36,19 @@ Until a sign-in method is configured, development routes show a clearly marked s
 
 1. Create an account/project at [Convex](https://dashboard.convex.dev/). Run `pnpm exec convex login`, then `pnpm exec convex dev --configure existing` to select that project. Use the CLI's resulting `.env.local` URLs. Switching to cloud does not migrate local data automatically.
 2. Create a **Web application** OAuth client in [Google Cloud Console](https://console.cloud.google.com/apis/credentials). Configure the consent screen and add your testing accounts while the OAuth app is in testing.
-3. Set the authorized JavaScript origin to `http://localhost:3000` and the authorized redirect URI to `http://localhost:3000/api/auth/callback/google`. For production, add the equivalents using the deployed app's exact HTTPS origin.
+3. Keep authorized JavaScript origin `http://localhost:3000` and redirect URI `http://localhost:3000/api/auth/callback/google`. Add origin `https://philoxenia-os.socrates.fyi` and redirect URI `https://philoxenia-os.socrates.fyi/api/auth/callback/google` to the same Google client.
 4. In your selected **Convex deployment's environment settings**, add:
 
    | Variable | Value |
    | --- | --- |
-   | `SITE_URL` | `http://localhost:3000`, or your production app origin |
+   | `SITE_URL` | `https://philoxenia-os.socrates.fyi` |
+   | `AUTH_TRUSTED_ORIGINS` | `http://localhost:3000` |
    | `BETTER_AUTH_SECRET` | A securely generated random secret of at least 32 characters |
    | `GOOGLE_CLIENT_ID` | The Google Web application client ID |
    | `GOOGLE_CLIENT_SECRET` | Its client secret |
    | `ORGANIZER_EMAILS` | `s.omiliadis@gmail.com` |
 
-   For the initialized local deployment, `SITE_URL`, `BETTER_AUTH_SECRET`, and `ORGANIZER_EMAILS` are already set. Add the two Google variables using `pnpm exec convex env set` in your own terminal. Keep credentials in environment settings, never source files.
+   Keep existing credentials on the shared dev deployment. Add any missing variables using `pnpm exec convex env set` in your own terminal. Keep credentials in environment settings, never source files. Authentication resolves email verification, password-reset, and Google callback URLs from the requesting app's allowed origin.
 5. Run `pnpm dev:backend` and reuse/restart the frontend as needed after environment changes. Visit `/sign-in` and sign in as `s.omiliadis@gmail.com`.
 6. Open **Command Center → New cohort**, set its name and arrival date, then use **Invite Hustler** with the participant's email address. Copy and share the sign-in link. The verified account joins the assigned cohort on first sign-in.
 

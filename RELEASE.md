@@ -1,55 +1,56 @@
 # Pilot release
 
-Target frontend: **https://philoxenia-os.vercel.app**. Stage 7 code is implemented; production activation remains pending. The Convex production deployment, production OAuth/email settings, and second organizer are not set up yet. A successful local build or mocked browser rehearsal does not satisfy the production pilot acceptance criteria.
+Target frontend: **https://philoxenia-os.socrates.fyi**. Both the hosted frontend and localhost intentionally use the existing cloud **development** Convex deployment **fine-starfish-961**. They share users, data, auth credentials, functions, scheduled jobs, and provider usage. Local backend changes immediately affect the hosted app once pushed. No data migration or new production Convex deployment is needed.
 
-## Keep environments separate
+## Shared environment
 
-| Environment | Frontend | Backend and secrets |
-| --- | --- | --- |
-| Development | localhost:3000 | Existing development deployment and `.env.local`; keep existing settings intact |
-| Production | philoxenia-os.vercel.app | New Convex production deployment, new auth secret, production OAuth and Resend configuration |
-| Vercel Preview | Preview URLs | Separate non-production backend only; never expose the production deploy key to Preview |
+| Setting | Local Next.js (.env.local) | Vercel Production | Convex dev deployment |
+| --- | --- | --- | --- |
+| CONVEX_DEPLOYMENT | dev:fine-starfish-961 | Not needed | Selected deployment |
+| NEXT_PUBLIC_CONVEX_URL | https://fine-starfish-961.convex.cloud | Same | Built in |
+| NEXT_PUBLIC_CONVEX_SITE_URL | https://fine-starfish-961.convex.site | Same | Built in |
+| SITE_URL | https://philoxenia-os.socrates.fyi | Same | Same |
+| AUTH_TRUSTED_ORIGINS | Not needed | Not needed | http://localhost:3000 |
+| CONVEX_DEPLOY_KEY | Not needed | Not needed | Not needed |
 
-Do not copy participant data, Google sessions, or provider credentials into samples. Development `/preview` routes return 404 in a production build. Vercel Preview also runs a production build; sample routes are unavailable there. The app advertises `noindex` and disallows crawling; authorization remains enforced by Convex.
+SITE_URL is the canonical origin for notification/invitation links and MCP. Better Auth resolves its own Google callbacks, verification links, and password reset links per request using SITE_URL plus AUTH_TRUSTED_ORIGINS. The Next.js auth proxy supplies the original host/protocol. Use exact origins with no trailing slash; separate additional origins with commas. Only add localhost ports you actually use. Cookies/sign-in remain separate in each browser origin, while accounts and application data are shared.
 
-## Configure the production backend
+Keep BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, ORGANIZER_EMAILS, RESEND_API_KEY, EMAIL_FROM, and any AI/import credentials on this existing Convex dev deployment. Preserve their existing values; no secret rotation is needed for a domain change. Check the sender domain in Resend if email delivery is not already working. Changing the frontend domain alone does not require a new email sender domain.
 
-1. Create/select the Convex project and create its production deployment in the dashboard. Keep local `.env.local` pointing at development. Production starts with an empty database; development data is not migrated automatically.
-2. Configure these in the **production deployment's** environment settings:
+The backend origin settings can be applied with:
 
-   | Variable | Production value |
-   | --- | --- |
-   | `SITE_URL` | `https://philoxenia-os.vercel.app` (no trailing slash) |
-   | `BETTER_AUTH_SECRET` | New securely generated random secret, at least 32 characters; different from development |
-   | `GOOGLE_CLIENT_ID` | Production Google Web OAuth client |
-   | `GOOGLE_CLIENT_SECRET` | Its secret |
-   | `ORGANIZER_EMAILS` | `s.omiliadis@gmail.com,<second-organizer-google-email>`; replace the placeholder before saving |
-   | `RESEND_API_KEY` | Production Resend sending key |
-   | `EMAIL_FROM` | Sender on a domain verified in Resend |
+~~~powershell
+pnpm exec convex env set SITE_URL https://philoxenia-os.socrates.fyi
+pnpm exec convex env set AUTH_TRUSTED_ORIGINS http://localhost:3000
+~~~
 
-3. Configure optional mission AI and SerpApi variables from `.env.example` on production only if needed. Missions have an editable fallback. Event sources start disabled; enable bounded imports deliberately after the cohort is ready.
-4. Create a Google Web OAuth client with authorized JavaScript origin `https://philoxenia-os.vercel.app` and redirect URI `https://philoxenia-os.vercel.app/api/auth/callback/google`. Configure the consent screen and audience/test users for both organizers and invited pilot accounts. Preserve the development client's localhost configuration.
-5. Verify the sender domain in Resend before sending invitations. Confirm provider account limits and test one delivery to a controlled address. The operations panel checks credential presence, not provider verification.
+## Google OAuth
 
-## Configure Vercel Production
+In the **existing Google Web application OAuth client** used by the shared backend, retain localhost and add the hosted app:
 
-Use the existing Vercel project serving `philoxenia-os.vercel.app`, Next.js framework preset, and `pnpm install --frozen-lockfile` for installation.
+| Setting | Values |
+| --- | --- |
+| Authorized JavaScript origins | http://localhost:3000 and https://philoxenia-os.socrates.fyi |
+| Authorized redirect URIs | http://localhost:3000/api/auth/callback/google and https://philoxenia-os.socrates.fyi/api/auth/callback/google |
 
-Generate a **production deployment key** with deployment permission in Convex. Set `CONVEX_DEPLOY_KEY` in Vercel scoped to **Production only**. Keep it out of the repository, chat, browser, and Vercel Preview environment. Remove any stale Production `CONVEX_DEPLOYMENT` value pointing at development.
+Do not use the Convex .site URL as the Google callback: this app proxies authentication through Next.js. Update the Google consent screen homepage/privacy/terms URLs if they reference the old frontend. If Google asks for an authorized domain, use socrates.fyi and complete its ownership verification if required. If the OAuth app is in Testing, add all intended Google sign-in users as test users or publish the consent configuration when ready. No new Google client or credentials are needed solely for the domain change.
 
-Override the **Production build command** to:
+## Vercel and DNS
 
-```text
-pnpm build:release
-```
+1. In the existing Vercel project's **Settings → Domains**, add philoxenia-os.socrates.fyi and attach it to Production.
+2. At the DNS provider for socrates.fyi, create the record Vercel shows for the philoxenia-os subdomain. Use Vercel's exact suggested target; wait for valid DNS and HTTPS certificate status. When using Cloudflare, begin with DNS-only while validating the Vercel domain.
+3. Set the three Vercel Production environment variables in the table above: both NEXT_PUBLIC_CONVEX URLs and SITE_URL. Remove stale Production CONVEX_DEPLOY_KEY and CONVEX_DEPLOYMENT variables. No Convex deployment key is needed because the frontend release no longer deploys the backend.
+4. Use the Next.js preset and pnpm install --frozen-lockfile. Set the **Production build command** to pnpm build:release. This validates the shared dev URL and canonical domain, derives the matching auth .site URL, and runs Next.js build. Preview builds should use pnpm build with a deliberately selected backend; do not attach arbitrary preview domains to the shared auth allowlist.
+5. Publish backend changes from the reviewed working tree with pnpm exec convex dev --once, then redeploy Vercel. The normal pnpm dev:backend watcher also publishes to this same shared backend. Vercel release builds intentionally publish only the frontend. Neither pnpm build nor pnpm build:release publishes Convex functions.
+6. Redirect any old public frontend domain to the new canonical domain in Vercel. If it must continue serving the app independently, explicitly configure it in the auth allowlist and Google OAuth too.
 
-This runs Convex deployment with the target's URL injected into the frontend build, checks that the key and Vercel environment are production, derives the matching `.convex.site` auth URL, and builds Next.js. If `NEXT_PUBLIC_CONVEX_SITE_URL` is set in Vercel, it must match the selected deployment. `NEXT_PUBLIC_CONVEX_URL` is supplied by the release command. Never put OAuth, Resend, AI, or SerpApi secrets in `NEXT_PUBLIC_` variables.
+NEXT_PUBLIC variables are embedded at build time, so redeploy after changing them. The release script checks the deployment URL but does not need backend credentials. Keep private keys out of NEXT_PUBLIC variables and source control. The local .env.local remains ignored by git.
 
-Use `pnpm build` for local builds and separately configured Preview builds, with both public Convex URLs set to a non-production deployment. Keep Preview deployments protected and do not reuse production OAuth or email credentials. Per-branch Convex preview provisioning is optional and has not been configured by this stage.
+MCP clients should connect at https://philoxenia-os.socrates.fyi/api/mcp. Reconnect OAuth clients and issue new personal tokens if the previous canonical SITE_URL differed; credentials are bound to their original resource URL. Keep the canonical SITE_URL identical locally and remotely. Local browser authentication still works at localhost, but MCP advertises the hosted URL.
 
-The release command performs the frontend build before publishing Convex functions. If the build or backend deployment fails, stop the frontend release and inspect Vercel build logs. After a successful release, verify the deployed commit and both public backend URLs in the build configuration.
+Development /preview routes return 404 in a production build, including Vercel Preview. The app advertises noindex and disallows crawling; authorization remains enforced by Convex. A successful build or mocked rehearsal does not establish live Google sign-in, email delivery, or pilot readiness.
 
-Official references: [Convex on Vercel](https://docs.convex.dev/production/hosting/vercel), [Convex deploy command](https://docs.convex.dev/cli/reference/deploy), [Better Auth + Next.js](https://labs.convex.dev/better-auth/framework-guides/next).
+Official references: [Convex on Vercel](https://docs.convex.dev/production/hosting/vercel), [Better Auth dynamic base URL](https://better-auth.com/docs/guides/dynamic-base-url), [Convex + Better Auth Next.js proxy](https://labs.convex.dev/better-auth/framework-guides/next), [Vercel custom domains](https://vercel.com/docs/domains/working-with-domains/add-a-domain), [Google Web OAuth](https://developers.google.com/identity/protocols/oauth2/web-server).
 
 ## Pilot rehearsal and handover
 

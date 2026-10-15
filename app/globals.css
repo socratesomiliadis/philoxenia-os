@@ -115,13 +115,25 @@ body {
     --control: #ffffff;
     --control-hover: #eae9e5;
     --soft: #ffffff;
+    --inset: #ffffff;
+    --inset-control: var(--card);
   }
 
   .surface-inset {
-    @apply bg-white;
+    background-color: var(--inset, #ffffff);
+    --control: var(--inset-control, var(--card));
+    --control-hover: #eae9e5;
+    --soft: var(--inset-control, var(--card));
+  }
+
+  .surface-overlay {
+    @apply bg-popover;
     --control: var(--card);
     --control-hover: #eae9e5;
     --soft: var(--card);
+    --inset: var(--card);
+    --inset-control: #ffffff;
   }
 }
+
 

@@ -19,29 +19,38 @@ for (const colorScheme of ["light", "dark"] as const) {
     await page.getByRole("searchbox", { name: "Search community" }).focus();
     await expect(search).not.toHaveCSS("box-shadow", idleSearchShadow);
 
+    await role.click();
+    await expect(page.locator('[data-slot="select-content"]')).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(page.getByRole("option", { name: "Everyone", exact: true })).toHaveCSS("background-color", "rgb(245, 244, 241)");
+    await page.keyboard.press("Escape");
+
     await page.goto("/preview/opportunities");
     const filters = page.getByRole("button", { name: "Filters", exact: true });
     await expect(filters).toHaveCSS("background-color", "rgb(255, 255, 255)");
     await filters.click();
-    await expect(page.getByRole("combobox", { name: "Location", exact: true })).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await expect(page.getByRole("button", { name: "Done", exact: true })).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(page.locator('[data-slot="popover-content"]')).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(page.getByRole("combobox", { name: "Location", exact: true })).toHaveCSS("background-color", "rgb(245, 244, 241)");
+    await expect(page.getByRole("button", { name: "Done", exact: true })).toHaveCSS("background-color", "rgb(245, 244, 241)");
 
     await page.goto("/preview/sprint");
     await page.getByRole("button", { name: "Add activity", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Add activity", exact: true });
+    await expect(dialog).toHaveCSS("background-color", "rgb(255, 255, 255)");
     await dialog.getByText("Add notes (optional)", { exact: true }).click();
     await page.mouse.move(0, 0);
-    for (const control of [dialog.getByLabel("Activity title", { exact: true }), dialog.getByLabel("Activity type", { exact: true })]) {
-      await expect(control).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    for (const control of [dialog.getByLabel("Activity title", { exact: true }), dialog.getByLabel("Activity type", { exact: true }), dialog.getByRole("button", { name: "Cancel", exact: true })]) {
+      await expect(control).toHaveCSS("background-color", "rgb(245, 244, 241)");
       await expect(control).toHaveCSS("border-color", "rgba(0, 0, 0, 0)");
     }
-    for (const control of [dialog.getByLabel("Day (optional)", { exact: true }), dialog.getByLabel("Notes (optional)", { exact: true }), dialog.getByRole("button", { name: "Cancel", exact: true })]) {
-      await expect(control).toHaveCSS("background-color", "rgb(245, 244, 241)");
+    for (const control of [dialog.getByLabel("Day (optional)", { exact: true }), dialog.getByLabel("Notes (optional)", { exact: true })]) {
+      await expect(control).toHaveCSS("background-color", "rgb(255, 255, 255)");
       await expect(control).toHaveCSS("border-color", "rgba(0, 0, 0, 0)");
     }
     await expect(dialog.getByRole("button", { name: "Add to Sprint", exact: true })).toHaveCSS("background-color", "rgb(0, 60, 46)");
     await expect(page.locator("html")).toHaveCSS("color-scheme", "light");
     await page.goto("/preview/onboarding");
-    await expect(page.getByRole("textbox", { name: "Your project", exact: true })).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(page.locator("main")).toHaveCSS("background-color", "rgb(245, 244, 241)");
+    await expect(page.locator("main .surface-overlay")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(page.getByRole("textbox", { name: "Your project", exact: true })).toHaveCSS("background-color", "rgb(245, 244, 241)");
   });
 }

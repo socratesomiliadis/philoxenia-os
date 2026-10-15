@@ -14,11 +14,11 @@ export function WorkspaceDialog({ title, children, onClose, footer, size = "defa
   useModalNotifications();
   const width = { compact: "sm:max-w-xl", default: "sm:max-w-3xl", large: "sm:max-w-5xl" }[size];
   return <Dialog open onOpenChange={(open) => { if (!open && !busy) onClose(); }}>
-    <DialogContent aria-label={title} showCloseButton={false} className={cn("top-1/2 bottom-auto flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-y-1/2 flex-col gap-0 overflow-hidden surface-card rounded-[24px] p-0 text-foreground shadow-lg ring-0 motion-reduce:animate-none sm:max-h-[calc(100dvh-4rem)]", width, wide && "h-[calc(100dvh-2rem)] sm:max-w-[1440px]", className)}>
+    <DialogContent aria-label={title} showCloseButton={false} className={cn("top-1/2 bottom-auto flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-y-1/2 flex-col gap-0 overflow-hidden surface-overlay rounded-[24px] p-0 text-foreground shadow-lg ring-0 motion-reduce:animate-none sm:max-h-[calc(100dvh-4rem)]", width, wide && "h-[calc(100dvh-2rem)] sm:max-w-[1440px]", className)}>
       <DialogClose disabled={busy} aria-label={closeLabel} render={<Button variant="ghost" size="icon-sm" className="absolute end-4 top-4 text-muted-foreground sm:end-6 sm:top-5" />}><X className="size-4" aria-hidden /></DialogClose>
       <DialogHeader className="shrink-0 px-5 py-5 pe-14 sm:px-8 sm:py-6 sm:pe-16"><DialogTitle className="text-xl leading-7 font-medium tracking-tight text-foreground wrap-anywhere sm:text-2xl sm:leading-8">{title}</DialogTitle></DialogHeader>
       <div data-slot="workspace-dialog-body" className={cn("scrollbar-thin min-h-0 flex-1 scroll-py-6 overflow-y-auto overscroll-contain px-5 py-6 text-sm leading-6 text-muted-foreground wrap-anywhere [scrollbar-gutter:stable] sm:px-8", bodyClassName)}>{children}</div>
-      {footer ? <div data-slot="workspace-dialog-footer" className="surface-inset shrink-0 px-5 py-4 sm:px-8 sm:py-5">{footer}</div> : null}
+      {footer ? <div data-slot="workspace-dialog-footer" className="shrink-0 px-5 py-4 sm:px-8 sm:py-5">{footer}</div> : null}
     </DialogContent>
   </Dialog>;
 }
