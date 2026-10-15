@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Pencil, Plus, Trash2, Trophy } from "lucide-react";
+import { Pencil, Plus, Trash2, Trophy } from "lucide-react";
 import { dateLabel } from "@/lib/cohort-dates";
 import { outcomeLabels, type SprintData, type SprintOutcome } from "@/lib/sprint";
 import { ActionButton, Badge } from "./ui";
@@ -19,7 +19,7 @@ export function SprintOutcomes({ data, onRecord, onEdit, onRemove, onActivity }:
         <h3 className="mt-4 text-lg leading-6 font-medium tracking-tight text-foreground">{outcome.title}</h3>
         {outcome.notes ? <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-muted">{outcome.notes}</p> : null}
         {outcome.activityId || data.canPlan ? <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-4">
-          {outcome.activityId ? <button onClick={() => onActivity(outcome.activityId!)} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg text-sm font-medium text-forest underline-offset-4 hover:underline">View related activity<ArrowUpRight className="size-3.5" aria-hidden /></button> : null}
+          {outcome.activityId ? <button onClick={() => onActivity(outcome.activityId!)} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg text-sm font-medium text-forest underline-offset-4 hover:underline">View related activity</button> : null}
           {data.canPlan ? <div className="flex items-center gap-2"><button aria-label={`Edit outcome ${outcome.title}`} onClick={() => onEdit(outcome)} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-soft px-3 text-xs font-medium text-foreground hover:bg-warm"><Pencil className="size-3.5" aria-hidden />Edit outcome</button><button aria-label={`Remove outcome ${outcome.title}`} onClick={() => onRemove(outcome)} className="inline-flex size-10 items-center justify-center rounded-lg border border-line text-muted hover:bg-red-50 hover:text-red-700"><Trash2 className="size-3.5" aria-hidden /></button></div> : null}
         </div> : null}
       </article>)}

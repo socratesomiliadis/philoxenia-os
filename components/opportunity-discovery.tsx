@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Popover } from "@heroui/react";
 import { useRef, type ReactNode } from "react";
-import { ArrowDownUp, ArrowUpRight, Bookmark, CalendarDays, Compass, MapPin, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowDownUp, Bookmark, CalendarDays, Compass, MapPin, Search, SlidersHorizontal, X } from "lucide-react";
 import { dateLabel, dateRangeLabel } from "@/lib/cohort-dates";
 import { sfCalendarDate, type Opportunity, type OpportunityFilters, type RecommendationContext } from "@/lib/opportunities";
 import type { Cohort } from "./workspace-context";
@@ -16,8 +16,8 @@ export function OpportunitiesHeader({ context, cohorts, cohort, preview, organiz
 }) {
   return <header className="space-y-5">
     <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-      <div className="min-w-0"><h1 className="text-3xl leading-tight font-medium tracking-[-0.045em] text-foreground @min-[640px]:text-[38px]">Opportunities</h1><p className="mt-2 max-w-xl text-sm leading-6 text-muted">Find your next conversation, fresh perspective, or place to build.</p></div>
-      {organizer ? <Link href={preview ? "/preview/organizer#opportunities" : "/organizer#opportunities"} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-white px-4 text-sm font-medium text-forest transition-colors duration-150 hover:bg-soft">Manage opportunities<ArrowUpRight className="size-4" aria-hidden /></Link> : null}
+      <div className="min-w-0"><h1 className="text-3xl leading-tight font-medium tracking-[-0.045em] text-foreground @min-[640px]:text-[38px]">Opportunities</h1></div>
+      {organizer ? <Link href={preview ? "/preview/organizer#opportunities" : "/organizer#opportunities"} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-white px-4 text-sm font-medium text-forest transition-colors duration-150 hover:bg-soft">Manage opportunities</Link> : null}
     </div>
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs leading-5 text-muted">
       <span className="inline-flex items-center gap-1.5"><MapPin className="size-3.5" aria-hidden />San Francisco & beyond</span>
@@ -112,6 +112,6 @@ export function OpportunityEmptyState({ entries, filters, organizer, preview, in
     <span className="mb-4 inline-flex size-12 items-center justify-center rounded-xl border border-line bg-white text-forest">{filters.savedOnly ? <Bookmark className="size-5" strokeWidth={1.6} aria-hidden /> : <Compass className="size-5" strokeWidth={1.6} aria-hidden />}</span>
     <h2 className="text-lg font-medium tracking-tight text-foreground">{entries.length === 0 ? "No published opportunities yet" : invalidRange ? "Check your event dates" : filters.savedOnly ? "No saved opportunities here yet" : "No opportunities match these filters"}</h2>
     <p className="mt-2 max-w-md text-sm leading-6 text-muted wrap-anywhere">{entries.length === 0 ? "Events, founders, startups, and alumni offers will appear here when your organizers publish them." : invalidRange ? "Choose an end date on or after the start date to see matching events." : filters.savedOnly ? "Bookmark an opportunity to come back to it. Try browsing all listings or widening your filters." : filters.search.trim() ? `No results for “${filters.search.trim()}”. Try a different search or browse all opportunities.` : "Try another interest or include more locations to find something that fits."}</p>
-    {entries.length && !invalidRange ? <ActionButton appearance="secondary" className="mt-5" onPress={onReset}>Browse all opportunities</ActionButton> : entries.length === 0 && organizer ? <Link href={preview ? "/preview/organizer#opportunities" : "/organizer#opportunities"} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-white px-4 text-sm font-medium text-forest hover:bg-soft">Publish your first opportunity<ArrowUpRight className="size-4" aria-hidden /></Link> : null}
+    {entries.length && !invalidRange ? <ActionButton appearance="secondary" className="mt-5" onPress={onReset}>Browse all opportunities</ActionButton> : entries.length === 0 && organizer ? <Link href={preview ? "/preview/organizer#opportunities" : "/organizer#opportunities"} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-white px-4 text-sm font-medium text-forest hover:bg-soft">Publish your first opportunity</Link> : null}
   </div>;
 }

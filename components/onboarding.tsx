@@ -17,6 +17,7 @@ import { MissionGoals } from "./mission-goals";
 import { MissionReview } from "./mission-review";
 import { EntryCard, EntryLayout } from "./entry-layout";
 import { authClient } from "@/lib/auth-client";
+import { HelpCheckin } from "./help-checkin";
 
 type Suggestion = { goals: MissionGoal[]; revision: number; source: "ai" | "template"; fallbackReason?: "unconfigured" | "unavailable" | "requested" };
 type EditorProps = {
@@ -191,6 +192,7 @@ function MissionEditor({ cohort, initial, preview, firstVisit, accountName, coho
   }}>Retry save</ActionButton></div> : null;
 
   return <EntryLayout onboarding>
+    <div className="mb-4 flex justify-end"><HelpCheckin /></div>
     {cohortPicker}
     {confirmed && !reviewing ? <EntryCard>
       <div className="flex items-start justify-between gap-4"><IconTile icon={Target} tone="green" />{accountControls}</div>

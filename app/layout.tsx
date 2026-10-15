@@ -10,6 +10,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: { default: "Philoxenia OS — Your next chapter", template: "%s | Philoxenia OS" },
   description: "Your personal workspace for two weeks of building, connecting, and opening doors in San Francisco. By Hustle Hours.",
 };

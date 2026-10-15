@@ -16,6 +16,7 @@ async function importSession(page: Page, entries: Opportunity[] = []) {
         case "users:viewer": return { name: profile.name, email: profile.email, profile, isOrganizer: true, participantCohortIds: [], allowed: true, needsProvisioning: false };
         case "cohorts:list": case "notifications:inbox": case "notifications:deliveries": case "openDoors:catalog": case "openDoors:ownOffers": case "openDoors:requests": return [];
         case "onboarding:required": return null;
+        case "commandCenter:operations": return null;
         case "cohorts:overview": return { cohorts: 0, participants: 0, pendingInvitations: 0 };
         case "opportunities:list": return { entries, context: { interests: [], categories: [] } };
         case "ingestion:status": return { sources, runs, intervalDays: 7, month: "2026-10" };

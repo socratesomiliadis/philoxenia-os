@@ -1,3 +1,4 @@
+import { emptyCohortReport } from "./helpers/command-center";
 import { expect, test, type Page } from "@playwright/test";
 import { mockSession } from "./helpers/mock-session";
 import { emptyProgress, type SprintData } from "../../lib/sprint";
@@ -79,6 +80,8 @@ async function doorsSession(page: Page) {
         case "openDoors:requests": return request ? [{ ...request, requesterName: hustler.name, alumnusName: alumnus.name, isRequester: role === "participant", isRecipient: role === "alumnus", meeting: sprint.entries[0] ? { title: sprint.entries[0].title, startAt: sprint.entries[0].startAt, endAt: sprint.entries[0].endAt } : null, outcomeCount: sprint.outcomes.length, coordination: args.organizer ? request.coordination ?? null : null }] : [];
         case "sprint:get": return sprint;
         case "sprint:shared": return { ...sprint, canPlan: true, management: true };
+        case "commandCenter:operations": return null;
+        case "commandCenter:cohortSummary": return emptyCohortReport(cohort);
         case "cohorts:overview": return { cohorts: 1, participants: 1, pendingInvitations: 0 };
         case "cohorts:roster": return { participants: [{ _id: "membership", _creationTime: 1, profileId: hustler._id, cohortId: cohort._id, status: "active", profile: { ...hustler, isAlumni: graduated }, isOrganizer: false }], invitations: [] };
         case "opportunities:list": return { entries: [], context: { interests: [], categories: [] } };

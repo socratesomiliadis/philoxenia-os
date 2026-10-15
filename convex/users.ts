@@ -134,6 +134,10 @@ export const deleteUser = mutation({
     await ctx.runMutation(components.betterAuth.adapter.deleteOne, { input: { model: "user", where: [{ field: "_id", operator: "eq", value: profile.authUserId }] } });
     const related = new Map([...memberships, ...onboarding, ...limits, ...invitations, ...acceptedInvitations, ...authEmailInvitations, ...bookmarks, ...sprintActivities, ...sprintProgress, ...sprintOutcomes].map((doc) => [doc._id, doc]));
     await deleteSupportData(ctx, profile._id);
+    for (const table of ["helpCheckins", "participantNotes"] as const) {
+      const rows = await ctx.db.query(table).withIndex("by_profile_cohort", (q) => q.eq("profileId", profile._id)).collect();
+      for (const row of rows) await ctx.db.delete(row._id);
+    }
     for (const invitation of [...invitations, ...acceptedInvitations, ...authEmailInvitations]) {
       const deliveries = await ctx.db.query("emailDeliveries").withIndex("by_invitation", (q) => q.eq("invitationId", invitation._id)).collect();
       for (const delivery of deliveries) await ctx.db.delete(delivery._id);

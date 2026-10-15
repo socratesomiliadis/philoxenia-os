@@ -11,6 +11,7 @@
 import type * as access from "../access.js";
 import type * as auth from "../auth.js";
 import type * as cohorts from "../cohorts.js";
+import type * as commandCenter from "../commandCenter.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as ingestion from "../ingestion.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   access: typeof access;
   auth: typeof auth;
   cohorts: typeof cohorts;
+  commandCenter: typeof commandCenter;
   crons: typeof crons;
   http: typeof http;
   ingestion: typeof ingestion;

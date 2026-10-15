@@ -74,7 +74,8 @@ export const requests = query({ args: { organizer: v.optional(v.boolean()) }, ha
       request.activityId ? ctx.db.query("sprintOutcomes").withIndex("by_activity", (q) => q.eq("activityId", request.activityId!)).collect() : [],
       args.organizer ? ctx.db.query("supportCoordination").withIndex("by_request", (q) => q.eq("requestId", request._id)).unique() : null,
     ]);
-    return { ...request, requesterName: requester?.name ?? "Removed member", alumnusName: alumnus?.name ?? "Removed alumnus", isRequester: request.requesterId === member.profile._id, isRecipient: request.alumnusId === member.profile._id,
+    const coordinator = coordination ? await ctx.db.get(coordination.organizerId) : null;
+    return { ...request, ...(coordination ? { coordinatorName: coordinator?.name ?? "Former organizer" } : {}), requesterName: requester?.name ?? "Removed member", alumnusName: alumnus?.name ?? "Removed alumnus", isRequester: request.requesterId === member.profile._id, isRecipient: request.alumnusId === member.profile._id,
       meeting: activity ? { title: activity.title, startAt: activity.startAt, endAt: activity.endAt } : null, outcomeCount: outcomes.reduce((sum, outcome) => sum + outcome.quantity, 0), coordination };
   }));
 } });

@@ -19,6 +19,7 @@ import { SprintModal } from "./sprint-editors";
 import { dateRangeLabel, sprintDates } from "@/lib/cohort-dates";
 import { useModalNotifications } from "./notification-context";
 import { OpenDoors } from "./open-doors";
+import { CohortReport, PilotOperations } from "./cohort-report";
 
 type Roster = FunctionReturnType<typeof api.cohorts.roster>;
 type CohortInput = { name: string; description: string; startDate: string; status: Cohort["status"] };
@@ -117,12 +118,14 @@ function OrganizerView({ preview = false, cohorts, selected, roster, overview, o
           <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0 flex-1 basis-48"><div className="mb-3 flex flex-wrap items-center gap-2"><Badge tone={selected.status === "active" ? "green" : "neutral"}>{selected.status === "active" ? "In progress" : selected.status === "upcoming" ? "Upcoming" : "Completed"}</Badge>{preview ? <Badge>Sample cohort</Badge> : null}</div><h2 className="text-2xl leading-8 font-medium tracking-tight text-foreground wrap-anywhere">{selected.name}</h2>{selected.description ? <p className="mt-2 max-w-xl text-sm leading-6 text-muted wrap-anywhere">{selected.description}</p> : null}</div><ActionButton appearance="secondary" onPress={() => setEditor("edit")} isDisabled={preview}><Edit3 className="size-3.5" aria-hidden />Edit cohort</ActionButton></div>
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3"><div className="space-y-1 text-xs leading-5 text-muted"><p className="flex items-start gap-1.5 tabular-nums"><CalendarDays className="mt-0.5 size-3.5 shrink-0" aria-hidden />{dateRangeLabel(selected.startDate, selected.endDate)}</p><p>14 days · San Francisco time</p></div><OrganizerSprint cohort={selected} compact /></div>
         </section>
+        <CohortReport key={`report-${selected._id}`} cohort={selected} />
         <CohortRoster key={selected._id} roster={roster} preview={preview} completed={selected.status === "completed"} busyId={busyId} search={search} onSearch={setSearch} onInvite={() => setInviteOpen(true)} onCopy={() => void copySignIn()} onManage={setManaging} onMission={setMissionParticipant} onSprint={setSprintParticipant} onRevoke={(id) => void revokeInvitation(id)} onGraduate={(participant) => void graduateParticipant(participant)} />
       </> : <section className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-line bg-soft/50 p-6 text-center"><CalendarDays className="mb-4 size-7 text-forest" strokeWidth={1.6} aria-hidden /><h2 className="text-2xl font-medium tracking-tight text-foreground">Create your first cohort</h2><p className="mt-3 max-w-sm text-sm leading-6 text-muted">Choose a name and arrival date. We’ll set the departure date for a 14-day stay.</p><ActionButton className="mt-5" isDisabled={preview} onPress={() => setEditor("create")}><Plus className="size-4" aria-hidden />Create your first cohort</ActionButton></section>}</div>
     </div>
     <OpportunityManager />
     <OpportunityImports />
     <OpenDoors organizer />
+    <PilotOperations />
     {deleting?.profile && onDeleteUser ? <DeleteUserDialog name={deleting.profile.name} email={deleting.profile.email} onClose={() => setDeleting(null)} onDelete={async (confirmationEmail) => {
       await onDeleteUser(deleting.profile!._id, confirmationEmail);
       toast.success("User deleted", { description: `${deleting.profile!.email} was removed from all cohorts. You can invite this email again to start fresh.`, timeout: 7000 });

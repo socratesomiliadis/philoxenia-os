@@ -4,6 +4,8 @@ test("preview navigation works on desktop and mobile without granting backend ac
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
+  // Exercise scrolling on a short desktop viewport even when Home fits on taller screens.
+  await page.setViewportSize({ width: 1280, height: 600 });
   await page.goto("/preview");
   await expect(page.getByRole("heading", { name: "Make this chapter yours." })).toBeVisible();
   await expect(page.getByText("Workspace preview · Sample cohort.", { exact: false })).toBeVisible();

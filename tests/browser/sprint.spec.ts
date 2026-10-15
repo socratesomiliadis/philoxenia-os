@@ -1,3 +1,4 @@
+import { emptyCohortReport } from "./helpers/command-center";
 import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { mockSession } from "./helpers/mock-session";
@@ -19,6 +20,8 @@ async function sprintSession(page: Page, organizer = false) {
         case "users:viewer": return { name: profile.name, email: profile.email, profile, isOrganizer: organizer, participantCohortIds: [cohort._id], allowed: true, needsProvisioning: false };
         case "cohorts:list": return [cohort];
         case "onboarding:required": return null;
+        case "commandCenter:operations": return null;
+        case "commandCenter:cohortSummary": return emptyCohortReport(cohort);
         case "cohorts:overview": return { cohorts: 1, participants: 1, pendingInvitations: 0 };
         case "cohorts:roster": return { participants: [{ _id: "test-membership", _creationTime: 1, profileId: "participant-profile", cohortId: cohort._id, status: "active", profile: { ...profile, _id: "participant-profile", name: "Other Hustler" }, isOrganizer: false }], invitations: [] };
         case "opportunities:list": return { entries: [{ ...sampleOpportunities[0], isSample: false }], context: sampleRecommendationContext };

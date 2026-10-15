@@ -1,7 +1,7 @@
 "use client";
 
 import { Alert, Button, Input, Label, ListBox, Select, TextField } from "@heroui/react";
-import { LoaderCircle, ArrowUpRight, type LucideIcon } from "lucide-react";
+import { LoaderCircle, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useState, type ReactNode, type ComponentProps } from "react";
 import { useModalNotifications } from "./notification-context";
@@ -20,10 +20,10 @@ export function Field({ label, className = "", ...props }: ComponentProps<typeof
   </TextField>;
 }
 
-export function PageHeading({ title, description, action }: { title: string; description: string; action?: ReactNode }) {
+export function PageHeading({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return <div className="flex flex-wrap items-start justify-between gap-5">
     <div className="min-w-0"><h1 className="text-3xl leading-tight font-medium tracking-[-0.045em] text-foreground wrap-anywhere sm:text-[38px]">{title}</h1>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{description}</p></div>
+      {description ? <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{description}</p> : null}</div>
     {action}
   </div>;
 }
@@ -43,7 +43,7 @@ export function Badge({ children, tone = "neutral" }: { children: ReactNode; ton
 }
 
 export function TextLink({ href, children }: { href: string; children: ReactNode }) {
-  return <Link href={href} className="inline-flex items-center gap-2 rounded-sm text-sm font-medium text-forest decoration-forest/40 underline-offset-4 hover:underline">{children}<ArrowUpRight className="size-4" aria-hidden /></Link>;
+  return <Link href={href} className="inline-flex items-center rounded-sm text-sm font-medium text-forest underline decoration-forest/30 underline-offset-4 hover:decoration-forest">{children}</Link>;
 }
 
 export function InlineError({ message }: { message: string | null }) {

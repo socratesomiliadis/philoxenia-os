@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, CalendarDays, CheckCheck, ChevronLeft, ChevronRight, Clock3, Download, List, MoveHorizontal, Plus, Trophy } from "lucide-react";
+import { CalendarDays, CheckCheck, ChevronLeft, ChevronRight, Clock3, Download, List, MoveHorizontal, Plus, Trophy } from "lucide-react";
 import { activityOnDay, type SprintData, type SprintEntry } from "@/lib/sprint";
 import { dateLabel, dateRangeLabel } from "@/lib/cohort-dates";
 import { ActionButton } from "./ui";
@@ -14,11 +14,10 @@ export function SprintHeader({ data, sharedOnly, onAdd, onExport }: { data: Spri
         <h1 className="text-3xl leading-tight font-medium tracking-[-0.045em] text-foreground @min-[640px]:text-[38px]">
           {data.management || sharedOnly ? "Cohort Sprint" : data.readOnly ? `${data.profileName ?? "Participant"}’s Sprint` : "Your 14-day Sprint"}
         </h1>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-muted">{data.management || sharedOnly ? "Bring the cohort together with shared activities and challenges." : "A little structure for the people, ideas, and work that matter."}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2.5">
         {data.canPlan ? <ActionButton onPress={onAdd}><Plus className="size-4" aria-hidden />{data.management ? "Add cohort activity" : "Add activity"}</ActionButton> : null}
-        {sharedOnly ? <Link href="/organizer" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-forest px-4 text-sm font-medium text-white shadow-control transition-[background-color,transform] duration-150 ease-ui hover:bg-forest/90 active:scale-[0.98]">Manage cohort activities<ArrowUpRight className="size-4" aria-hidden /></Link> : null}
+        {sharedOnly ? <Link href="/organizer" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-forest px-4 text-sm font-medium text-white shadow-control transition-[background-color,transform] duration-150 ease-ui hover:bg-forest/90 active:scale-[0.98]">Manage cohort activities</Link> : null}
         <ActionButton appearance="secondary" onPress={onExport} isDisabled={!data.entries.some((entry) => !entry.cancelledAt && entry.progress.status !== "skipped")}><Download className="size-4" aria-hidden />Export Sprint</ActionButton>
       </div>
     </div>
@@ -103,7 +102,7 @@ export function SprintDaySchedule({ date, items, dayIndex, days, data, preview, 
       <span className="mb-4 inline-flex size-11 items-center justify-center rounded-xl border border-line bg-white text-forest"><CalendarDays className="size-5" strokeWidth={1.6} aria-hidden /></span>
       <h3 className="text-base font-medium text-foreground">{data.canPlan ? "A little room for possibility" : "No activities scheduled"}</h3>
       <p className="mt-2 max-w-sm text-sm leading-6 text-muted">{data.canPlan ? data.management ? "Add a shared activity or challenge for the cohort." : "Make a plan for this day, or find something worth showing up for." : data.readOnly ? "This participant hasn’t planned anything for this day." : "Add shared activities from the Command Center to start filling the cohort’s schedule."}</p>
-      {data.canPlan ? <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2"><ActionButton appearance="secondary" aria-label={`Add activity on ${dateLabel(date, "MMM d")}`} onPress={onAdd}><Plus className="size-4" aria-hidden />Plan this day</ActionButton>{!data.management ? <Link href={preview ? "/preview/opportunities" : "/opportunities"} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-forest underline-offset-4 hover:underline">Find opportunities<ArrowUpRight className="size-3.5" aria-hidden /></Link> : null}</div> : null}
+      {data.canPlan ? <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2"><ActionButton appearance="secondary" aria-label={`Add activity on ${dateLabel(date, "MMM d")}`} onPress={onAdd}><Plus className="size-4" aria-hidden />Plan this day</ActionButton>{!data.management ? <Link href={preview ? "/preview/opportunities" : "/opportunities"} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-forest underline-offset-4 hover:underline">Find opportunities</Link> : null}</div> : null}
     </div>}
   </section>;
 }

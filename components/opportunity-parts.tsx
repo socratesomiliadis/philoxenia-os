@@ -46,7 +46,7 @@ export function OpportunityCard({ entry, context, busy, onBookmark, onOpen }: { 
     </div>
     <div className="mt-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl bg-soft/75 px-3 py-2">
       <p className={`min-w-0 flex-1 basis-36 text-[11px] leading-5 wrap-anywhere ${match.reasons[0] ? "text-forest" : "text-muted"}`}>{match.reasons[0] ? <span className="flex items-start gap-1.5"><Check className="mt-0.5 size-3.5 shrink-0" aria-hidden />{match.reasons[0]}</span> : entry.primarySourceId ? "Imported from the original source" : "Curated by your organizers"}</p>
-      <button onClick={onOpen} aria-label={`View ${entry.title}`} className="inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-forest after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none! focus-visible:after:outline-2 focus-visible:after:outline-offset-3 focus-visible:after:outline-forest">View details<ArrowUpRight className="size-3.5" aria-hidden /></button>
+      <button onClick={onOpen} aria-label={`View ${entry.title}`} className="inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-forest after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none! focus-visible:after:outline-2 focus-visible:after:outline-offset-3 focus-visible:after:outline-forest">View details</button>
     </div>
   </article>;
 }

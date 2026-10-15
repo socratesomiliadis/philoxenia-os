@@ -47,7 +47,7 @@ export function SprintMissionPanel({ data, preview }: { data: SprintData; previe
       </div>)}</div>
       <p className="mt-6 border-t border-forest/10 pt-4 text-xs leading-5 text-muted">Progress counts contributions you report on completed, linked activities.</p>
     </> : <div className="mt-4"><h3 className="text-sm font-medium text-foreground">Give your Sprint a direction</h3><p className="mt-2 text-sm leading-6 text-muted">Confirm your three mission goals, then link activities to track what moves forward.</p></div>}
-    {!data.readOnly ? <Link href={preview ? "/preview/onboarding" : "/onboarding"} className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-forest/15 bg-white/75 px-3 text-xs font-medium text-forest hover:bg-white">Review mission<ArrowUpRight className="size-3.5" aria-hidden /></Link> : null}
+    {!data.readOnly ? <Link href={preview ? "/preview/onboarding" : "/onboarding"} className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-forest/15 bg-white/75 px-3 text-xs font-medium text-forest hover:bg-white">Review mission</Link> : null}
   </aside>;
 }
 

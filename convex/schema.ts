@@ -7,6 +7,15 @@ import { offerFields, communityFields, requestStatus } from "./openDoorsValidato
 import { providerValidator, sourceProviderValidator } from "./ingestionValidators";
 
 export default defineSchema({
+  helpCheckins: defineTable({
+    profileId: v.id("profiles"), cohortId: v.id("cohorts"), message: v.string(),
+    status: v.union(v.literal("open"), v.literal("resolved")), revision: v.number(), updatedAt: v.number(),
+    resolvedBy: v.optional(v.id("profiles")), resolvedAt: v.optional(v.number()),
+  }).index("by_profile_cohort", ["profileId", "cohortId"]).index("by_cohort", ["cohortId"]),
+  participantNotes: defineTable({
+    profileId: v.id("profiles"), cohortId: v.id("cohorts"), organizerId: v.id("profiles"),
+    note: v.string(), revision: v.number(), updatedAt: v.number(),
+  }).index("by_profile_cohort", ["profileId", "cohortId"]),
   importSettings: defineTable({ provider: providerValidator, enabled: v.boolean(), autoPublish: v.boolean(), monthlyLimit: v.optional(v.number()), feedUrl: v.optional(v.string()),
     ownerId: v.id("profiles"), lastAttemptAt: v.optional(v.number()), lastSuccessAt: v.optional(v.number()), activeRunId: v.optional(v.id("importRuns")) }).index("by_provider", ["provider"]),
   importUsage: defineTable({ provider: providerValidator, month: v.string(), reserved: v.number(), runs: v.number() }).index("by_provider_month", ["provider", "month"]),
@@ -27,7 +36,7 @@ export default defineSchema({
     response: v.optional(v.string()), alternative: v.optional(v.string()), revision: v.number(), updatedAt: v.number(),
     activityId: v.optional(v.id("sprintActivities")), completedBy: v.optional(v.id("profiles")),
   }).index("by_requester", ["requesterId"]).index("by_alumnus", ["alumnusId"])
-    .index("by_offer", ["offerId"]).index("by_requester_offer", ["requesterId", "offerId"]),
+    .index("by_offer", ["offerId"]).index("by_requester_offer", ["requesterId", "offerId"]).index("by_cohort", ["cohortId"]),
   supportCoordination: defineTable({ requestId: v.id("supportRequests"), organizerId: v.id("profiles"), note: v.string(), updatedAt: v.number() })
     .index("by_request", ["requestId"]),
   notifications: defineTable({ profileId: v.id("profiles"), message: v.string(), requestId: v.optional(v.id("supportRequests")), createdAt: v.number(), readAt: v.optional(v.number()) })

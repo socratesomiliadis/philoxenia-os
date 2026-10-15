@@ -2,11 +2,13 @@
 
 The workspace for Philoxenia by Hustle Hours: two weeks of building, connecting, and opening doors in San Francisco.
 
-## Stages 1–6
+## Stages 1–7
 
 Implemented: responsive participant/organizer navigation, Google authentication through Better Auth + Convex, organizer bootstrap, cohort management, approved-email invitations, cohort access controls, participant date overrides, account suspension, and a private community directory. Stage 2 adds resumable onboarding and three editable, measurable mission goals per Hustler and cohort. Stage 3 adds curated opportunity discovery, explained recommendations, private bookmarks, and organizer publishing. Stage 4 adds the 14-day Sprint, shared cohort activities, attendance/completion, mission progress, self-reported outcomes, and calendar exports. Stage 5 adds alumni graduation, shared community profiles, alumni-owned support offers, private requests and alternatives, Sprint meeting links, organizer coordination, in-app notifications, and optional transactional email. Stage 6 adds bounded scheduled event imports, YC CSV imports, separate source snapshots and organizer edits, source-change warnings, and organizer import monitoring.
 
 Stack: Next.js 16.4, React 19, HeroUI v3, Tailwind v4, Convex, Better Auth, and pnpm. Better Auth is pinned to the version supported by the Convex integration.
+
+Stage 7 adds participant help check-ins (including during onboarding), explained organizer attention flags, private participant follow-up notes, cohort summaries, four CSV exports, visible Open Doors coordinator names, and backend configuration/delivery/import status. Production launch at **https://philoxenia-os.vercel.app** remains pending the production Convex deployment, OAuth/email setup, second organizer, and live pilot rehearsal. Follow [the release runbook](RELEASE.md) for environment separation, `pnpm build:release`, acceptance checks, and operations.
 
 ## Run locally
 
