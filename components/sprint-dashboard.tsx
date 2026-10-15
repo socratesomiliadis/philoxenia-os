@@ -84,7 +84,7 @@ export function SprintView({ data, actions, preview = false }: { data: SprintDat
     {hasPersonalSprint ? <SprintSummary entries={entries} outcomes={data.outcomes} /> : null}
     {conflicts.length ? <div className="flex items-start gap-3 rounded-xl bg-warm p-4 text-sm leading-6 text-foreground"><TriangleAlert className="mt-1 size-4 shrink-0" aria-hidden /><div><p className="font-medium">Some activities overlap</p><p className="text-muted-foreground">Open an activity to review its time: {conflicts.map((entry) => entry.title).join(", ")}</p></div></div> : null}
     <SprintDayPicker days={days} entries={within} selectedDay={selectedDay} view={view} onDay={selectDay} onView={setView} />
-    <div className={`grid items-start gap-8 border-t border-line pt-7 ${hasPersonalSprint ? "@min-[880px]:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
+    <div className={`grid items-start gap-8 pt-7 ${hasPersonalSprint ? "@min-[880px]:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
       <div className="min-w-0 space-y-8">
         {(view === "day" ? [selectedDay] : days).map((date) => <SprintDaySchedule key={date} date={date} items={within.filter((entry) => activityOnDay(entry, date))} dayIndex={days.indexOf(date)} days={days} data={data} preview={preview} fullAgenda={view === "agenda"} onDay={selectDay} onAdd={() => setEditor({ day: date })} onOpen={open} />)}
         {unscheduled.length ? <section aria-label="Unscheduled activities" className="space-y-4 rounded-2xl bg-soft/65 p-4 @min-[640px]:p-5">
@@ -93,7 +93,7 @@ export function SprintView({ data, actions, preview = false }: { data: SprintDat
           {renderCards(unscheduled)}
         </section> : null}
         {outside.length ? <section aria-label="Activities outside your stay" className="space-y-4"><h2 className="text-lg font-medium tracking-tight text-foreground">Outside your current stay</h2><p className="text-sm leading-6 text-muted-foreground">These activities fall outside your stay dates. Review their dates before making plans.</p>{renderCards(outside)}</section> : null}
-        {cancelled.length ? <details className="rounded-2xl border border-line p-5"><summary className="cursor-pointer text-sm font-medium text-muted-foreground">Cancelled cohort activities ({cancelled.length})</summary><div className="mt-4">{renderCards(cancelled)}</div></details> : null}
+        {cancelled.length ? <details className="rounded-2xl surface-card p-5"><summary className="cursor-pointer text-sm font-medium text-muted-foreground">Cancelled cohort activities ({cancelled.length})</summary><div className="mt-4">{renderCards(cancelled)}</div></details> : null}
       </div>
       {hasPersonalSprint ? <SprintMissionPanel data={data} preview={preview} /> : null}
     </div>

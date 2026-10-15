@@ -2,31 +2,33 @@
 
 
 import { ArrowUpRight, Bookmark, Building2, CalendarDays, Check, DoorOpen, MapPin, UserRound, UsersRound } from "lucide-react";
-import { useId, type ReactNode, type SelectHTMLAttributes } from "react";
+import { useId, type ComponentProps, type SelectHTMLAttributes } from "react";
 import { categoryLabels, costLabels, eventTimeLabel, opportunityTimeLabel, kindLabels, matchOpportunity, type Opportunity, type RecommendationContext } from "@/lib/opportunities";
 import { ActionButton, Badge, InlineError } from "./ui";
 import { WorkspaceDialog } from "./workspace-dialog";
+import { cn } from "@/lib/utils";
+import { controlDisabled, controlFocus, controlSurface } from "./ui/control-styles";
 
 export const kindIcons = { event: CalendarDays, startup: Building2, founder: UserRound, alumni: DoorOpen };
 
 export function SelectField({ label, children, id, ...props }: SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
   const generatedId = useId();
   const fieldId = id ?? generatedId;
-  return <div className="flex min-w-0 flex-col gap-2 text-xs font-medium text-muted-foreground"><label htmlFor={fieldId}>{label}</label><select {...props} id={fieldId} className="min-h-11 w-full min-w-0 rounded-xl border border-line bg-white px-3 text-sm font-normal text-foreground shadow-control">{children}</select></div>;
+  return <div className="flex min-w-0 flex-col gap-2 text-xs font-medium text-muted-foreground"><label htmlFor={fieldId}>{label}</label><select {...props} id={fieldId} className={cn("min-h-11 w-full min-w-0 rounded-xl border px-3 text-sm font-normal", controlSurface, controlFocus, controlDisabled)}>{children}</select></div>;
 }
 
-export function OpportunityModal({ title, children, onClose, footer }: { title: string; children: ReactNode; onClose: () => void; footer?: ReactNode }) {
-  return <WorkspaceDialog title={title} onClose={onClose} closeLabel="Close opportunity" bodyClassName="@container/opportunity-dialog" footer={footer}>{children}</WorkspaceDialog>;
+export function OpportunityModal(props: Omit<ComponentProps<typeof WorkspaceDialog>, "closeLabel" | "bodyClassName">) {
+  return <WorkspaceDialog closeLabel="Close details" bodyClassName="@container/opportunity-dialog" {...props} />;
 }
 
 export function BookmarkButton({ entry, busy, onBookmark }: { entry: Opportunity; busy: boolean; onBookmark: (entry: Opportunity) => void }) {
-  return <ActionButton appearance="secondary" aria-label={`${entry.saved ? "Unsave" : "Save"} ${entry.title}`} aria-pressed={entry.saved} disabled={busy} onClick={() => onBookmark(entry)} className={`relative z-10 size-10 min-h-10 min-w-10 shrink-0 rounded-lg px-0 shadow-none ${entry.saved ? "border-forest/20 bg-sage text-forest" : "text-muted-foreground"}`}><Bookmark className={`size-[18px] ${entry.saved ? "fill-forest text-forest" : "text-muted-foreground"}`} aria-hidden /></ActionButton>;
+  return <ActionButton appearance="secondary" aria-label={`${entry.saved ? "Unsave" : "Save"} ${entry.title}`} aria-pressed={entry.saved} disabled={busy} onClick={() => onBookmark(entry)} className={`relative z-10 size-10 min-h-10 min-w-10 shrink-0 rounded-lg px-0 shadow-none ${entry.saved ? "bg-sage text-forest" : "text-muted-foreground"}`}><Bookmark className={`size-[18px] ${entry.saved ? "fill-forest text-forest" : "text-muted-foreground"}`} aria-hidden /></ActionButton>;
 }
 
 export function OpportunityCard({ entry, context, busy, onBookmark, onOpen }: { entry: Opportunity; context: RecommendationContext; busy: boolean; onBookmark: (entry: Opportunity) => void; onOpen: () => void }) {
   const match = matchOpportunity(entry, context);
   const Icon = kindIcons[entry.kind];
-  return <article className="@container/opportunity group relative flex min-w-0 flex-col rounded-2xl border border-line bg-white p-5 transition-colors duration-150 hover:border-forest/25 focus-within:border-forest/40">
+  return <article className="@container/opportunity group relative flex min-w-0 flex-col rounded-2xl surface-card p-5 transition-colors duration-150 hover:bg-warm">
     <div className="mb-4 flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2.5"><span className={`inline-flex size-9 shrink-0 items-center justify-center rounded-xl ${entry.kind === "alumni" ? "bg-sage text-forest" : "bg-soft text-muted-foreground"}`}><Icon className="size-[18px]" strokeWidth={1.7} aria-hidden /></span><span className="text-xs text-muted-foreground">{kindLabels[entry.kind]}</span>{entry.organizerPick ? <span className="hidden rounded-md bg-gold-soft px-2 py-1 text-[11px] text-gold-foreground @min-[380px]/opportunity:inline">Organizer pick</span> : null}</div><BookmarkButton entry={entry} busy={busy} onBookmark={onBookmark} /></div>
     <div className="grid min-w-0 flex-1 gap-x-8 gap-y-4 @min-[640px]/opportunity:grid-cols-[minmax(0,1fr)_260px]">
       <div className="min-w-0 wrap-anywhere">
@@ -69,13 +71,13 @@ export function OpportunityDetails({ entry, context, busy, error, notice, onBook
       <p className="flex items-start gap-2.5"><MapPin className="mt-1 size-4 shrink-0 text-forest" aria-hidden /><span>{entry.location}</span></p>
       {entry.startAt !== undefined || entry.eventDate ? <>
         <div className="flex items-start gap-2.5"><CalendarDays className="mt-1 size-4 shrink-0 text-forest" aria-hidden /><div className="min-w-0"><p className="font-medium text-foreground">{opportunityTimeLabel(entry)}</p>{entry.endAt !== undefined ? <p className="mt-1 text-xs leading-5">Ends {eventTimeLabel(entry.endAt)}</p> : null}</div></div>
-        <p className="border-t border-line pt-3 text-xs leading-5"><span className="font-medium text-foreground">{costLabels[entry.cost ?? "unknown"]}</span>{entry.costNote ? ` · ${entry.costNote}` : ""}</p>
+        <p className="pt-3 text-xs leading-5"><span className="font-medium text-foreground">{costLabels[entry.cost ?? "unknown"]}</span>{entry.costNote ? ` · ${entry.costNote}` : ""}</p>
       </> : null}
     </section>
     <section className="space-y-2"><h3 className="text-sm font-medium text-foreground">About this opportunity</h3><p className="text-sm leading-7 whitespace-pre-wrap wrap-anywhere text-muted-foreground">{entry.description}</p></section>
     <div className="flex flex-wrap gap-1.5">{entry.interests.map((interest) => <span key={interest} className="max-w-full rounded-md bg-soft px-2.5 py-1 text-xs leading-5 text-muted-foreground wrap-anywhere">{interest}</span>)}</div>
     {match.reasons.length ? <section className="rounded-2xl bg-sage/55 p-4"><h3 className="text-sm font-medium text-foreground">Why this is here for you</h3><ul className="mt-3 space-y-2">{match.reasons.map((reason) => <li key={reason} className="flex items-start gap-2 text-xs leading-5 text-muted-foreground"><Check className="mt-0.5 size-3.5 shrink-0 text-forest" aria-hidden />{reason}</li>)}</ul><p className="mt-3 text-xs leading-5 text-muted-foreground">Based on your cohort’s interests, confirmed mission, stay dates, and organizer picks.</p></section> : null}
-    {entry.kind === "alumni" && entry.support ? <section className="space-y-3 rounded-2xl border border-line p-4"><h3 className="text-base font-medium text-foreground">Support from {entry.support.offeredBy}</h3><p className="text-sm leading-6 whitespace-pre-wrap text-muted-foreground">{entry.support.pathway}</p><div className="space-y-1"><h4 className="text-xs font-medium text-foreground">Availability</h4><p className="text-sm leading-6 text-muted-foreground">{entry.support.availability}</p></div><p className="text-xs leading-5 text-muted-foreground">Your organizer confirmed this support path. Request it through the provider’s form; availability is subject to their reply.</p></section> : entry.kind !== "event" ? <p className="rounded-xl bg-soft p-4 text-sm leading-6 text-muted-foreground">Public directory entry. An introduction, meeting, or visit has not been arranged.</p> : <p className="text-xs leading-5 text-muted-foreground">Registration, approval, and current availability are handled by the original event platform.</p>}
+    {entry.kind === "alumni" && entry.support ? <section className="space-y-3 rounded-2xl surface-inset p-4"><h3 className="text-base font-medium text-foreground">Support from {entry.support.offeredBy}</h3><p className="text-sm leading-6 whitespace-pre-wrap text-muted-foreground">{entry.support.pathway}</p><div className="space-y-1"><h4 className="text-xs font-medium text-foreground">Availability</h4><p className="text-sm leading-6 text-muted-foreground">{entry.support.availability}</p></div><p className="text-xs leading-5 text-muted-foreground">Your organizer confirmed this support path. Request it through the provider’s form; availability is subject to their reply.</p></section> : entry.kind !== "event" ? <p className="rounded-xl bg-soft p-4 text-sm leading-6 text-muted-foreground">Public directory entry. An introduction, meeting, or visit has not been arranged.</p> : <p className="text-xs leading-5 text-muted-foreground">Registration, approval, and current availability are handled by the original event platform.</p>}
     {entry.categories.length ? <p className="text-xs leading-5 text-muted-foreground">Useful for: {entry.categories.map((category) => categoryLabels[category]).join(" · ")}</p> : null}
     {entry.eventDate ? <p className="text-xs leading-6 text-muted-foreground">This is an all-day calendar entry. Adding it to your Sprint creates an untimed planning task; confirm the event time before scheduling.</p> : null}
     {entry.sourceCancelled ? <p role="status" className="rounded-xl bg-warm p-4 text-sm leading-6">The source reports this event as cancelled. Check the original page for updates.</p> : null}

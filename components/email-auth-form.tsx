@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { ActionButton, Field, InlineError } from "./ui";
+import { signInReturnPath } from "@/lib/auth-return";
 
 type Mode = "sign-in" | "sign-up" | "forgot" | "reset";
 
@@ -59,7 +60,7 @@ export function EmailAuthForm({ ready, checking, disabled, onBusyChange }: {
     setNotice(null);
     setCanResend(false);
     setToken(null);
-    window.history.replaceState(null, "", "/sign-in");
+    window.history.replaceState(null, "", signInReturnPath("/sign-in"));
   }
 
   function updateBusy(value: boolean) {
@@ -97,13 +98,13 @@ export function EmailAuthForm({ ready, checking, disabled, onBusyChange }: {
       } else if (mode === "sign-up") {
         // Verification is required, so sign-up creates no session. Avoid a
         // session refresh that would remount the gateway and clear this notice.
-        const result = await authClient.signUp.email({ name: String(values.get("name") ?? "").trim(), email: address, password, callbackURL: "/sign-in" }, { disableSignal: true });
+        const result = await authClient.signUp.email({ name: String(values.get("name") ?? "").trim(), email: address, password, callbackURL: signInReturnPath("/sign-in") }, { disableSignal: true });
         if (result.error) { setError(authError(result.error.code)); return; }
         form.reset();
         setNotice("Check your inbox for a verification link to finish creating your account. If you already have an account, sign in or reset your password.");
         setCanResend(true);
       } else {
-        const result = await authClient.signIn.email({ email: address, password, callbackURL: "/sign-in" });
+        const result = await authClient.signIn.email({ email: address, password, callbackURL: signInReturnPath("/sign-in") });
         if (result.error) {
           if (result.error.code === "EMAIL_NOT_VERIFIED") {
             setError("Verify your email before signing in. Check your inbox for a verification link, or send another below.");
@@ -111,7 +112,7 @@ export function EmailAuthForm({ ready, checking, disabled, onBusyChange }: {
           } else setError(authError(result.error.code));
           return;
         }
-        router.replace("/");
+        router.replace(signInReturnPath("/"));
         router.refresh();
       }
     } catch {
@@ -128,7 +129,7 @@ export function EmailAuthForm({ ready, checking, disabled, onBusyChange }: {
     setError(null);
     setNotice(null);
     try {
-      const result = await authClient.sendVerificationEmail({ email: email.trim().toLowerCase(), callbackURL: "/sign-in" });
+      const result = await authClient.sendVerificationEmail({ email: email.trim().toLowerCase(), callbackURL: signInReturnPath("/sign-in") });
       if (result.error) { setError(authError(result.error.code)); return; }
       setNotice("If your account needs verification, a new link has been sent. Check your inbox and spam folder.");
     } catch {

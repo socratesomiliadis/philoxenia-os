@@ -7,6 +7,16 @@ import { offerFields, communityFields, requestStatus } from "./openDoorsValidato
 import { providerValidator, sourceProviderValidator } from "./ingestionValidators";
 
 export default defineSchema({
+  mcpClients: defineTable({ clientId: v.string(), name: v.string(), redirectUris: v.array(v.string()) }).index("by_client", ["clientId"]),
+  mcpCodes: defineTable({ hash: v.string(), profileId: v.id("profiles"), clientId: v.string(), redirectUri: v.string(),
+    challenge: v.string(), resource: v.string(), scopes: v.array(v.string()), expiresAt: v.number() }).index("by_hash", ["hash"]).index("by_expiry", ["expiresAt"]),
+  mcpCredentials: defineTable({ profileId: v.id("profiles"), name: v.string(), kind: v.union(v.literal("personal"), v.literal("oauth")),
+    accessHash: v.string(), refreshHash: v.optional(v.string()), clientId: v.optional(v.string()), resource: v.string(),
+    scopes: v.array(v.string()), expiresAt: v.number(), refreshExpiresAt: v.optional(v.number()), revokedAt: v.optional(v.number()),
+    lastUsedAt: v.optional(v.number()), windowStart: v.optional(v.number()), windowCalls: v.optional(v.number()),
+  }).index("by_access", ["accessHash"]).index("by_refresh", ["refreshHash"]).index("by_profile", ["profileId"]),
+  mcpAudit: defineTable({ profileId: v.id("profiles"), credentialId: v.id("mcpCredentials"), tool: v.string(), at: v.number() }).index("by_profile", ["profileId"]),
+  mcpRateLimits: defineTable({ key: v.string(), start: v.number(), count: v.number() }).index("by_key", ["key"]),
   helpCheckins: defineTable({
     profileId: v.id("profiles"), cohortId: v.id("cohorts"), message: v.string(),
     status: v.union(v.literal("open"), v.literal("resolved")), revision: v.number(), updatedAt: v.number(),

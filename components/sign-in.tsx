@@ -9,6 +9,7 @@ import { BrandMark } from "./brand";
 import { ActionButton, InlineError } from "./ui";
 import { EntryCard, EntryLayout } from "./entry-layout";
 import { EmailAuthForm } from "./email-auth-form";
+import { signInReturnPath } from "@/lib/auth-return";
 
 export function SignInScreen() {
   return backendConfigured ? (
@@ -79,7 +80,7 @@ function SignInContent({
     try {
       const result = await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/",
+        callbackURL: signInReturnPath("/"),
         errorCallbackURL: "/sign-in?error=google",
       });
       if (result.error) throw new Error(result.error.message);
@@ -132,7 +133,7 @@ function SignInContent({
               <InlineError message={error} />
             </div>
           ) : null}
-          <div className="mt-6 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-line" /><span>or continue with email</span><span className="h-px flex-1 bg-line" /></div>
+          <p className="mt-6 text-center text-xs text-muted-foreground">or continue with email</p>
           <EmailAuthForm ready={emailReady} checking={checking} disabled={busy} onBusyChange={setEmailBusy} />
         </div>
       </EntryCard>

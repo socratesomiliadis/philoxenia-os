@@ -4,5 +4,12 @@ export const offerFields = {
   kind: v.union(v.literal("mentorship"), v.literal("portfolio"), v.literal("introduction"), v.literal("other")),
   title: v.string(), description: v.string(), availability: v.string(), capacity: v.number(), connection: v.string(), published: v.boolean(),
 };
-export const communityFields = { bio: v.string(), building: v.string(), interests: v.string(), offering: v.string() };
+export const communityFields = {
+  bio: v.string(), building: v.string(), interests: v.string(), offering: v.string(),
+  headline: v.optional(v.string()), location: v.optional(v.string()),
+  socialLinks: v.optional(v.object({
+    website: v.optional(v.string()), linkedin: v.optional(v.string()), github: v.optional(v.string()),
+    x: v.optional(v.string()), instagram: v.optional(v.string()),
+  })),
+};
 export const requestStatus = v.union(v.literal("pending"), v.literal("alternative"), v.literal("agreed"), v.literal("declined"), v.literal("withdrawn"), v.literal("completed"));

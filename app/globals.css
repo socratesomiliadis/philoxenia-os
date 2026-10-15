@@ -2,10 +2,13 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #efefee;
+  color-scheme: light;
+  --background: #ffffff;
   --foreground: #242622;
-  --card: #ffffff;
+  --card: #f5f4f1;
   --card-foreground: #242622;
   --popover: #ffffff;
   --popover-foreground: #242622;
@@ -20,6 +23,9 @@
   --destructive: #b91c1c;
   --border: #e4e1da;
   --input: #dedbd2;
+  --control: #f5f4f1;
+  --control-hover: #eae9e5;
+  --soft: #f5f4f1;
   --ring: #003c2e;
   --gold: #d4a844;
   --gold-soft: #f7efd9;
@@ -42,7 +48,7 @@
   --color-canvas: var(--background);
   --color-muted: var(--muted);
   --color-line: #e4e1da;
-  --color-soft: #f5f4f1;
+  --color-soft: var(--soft);
   --color-sage: #e8eee7;
   --color-warm: #ebe8e1;
   --color-stone: #d3cebf;
@@ -52,6 +58,9 @@
   --font-heading: var(--font-sans);
   --color-ring: var(--ring);
   --color-input: var(--input);
+  --color-control: var(--control);
+  --color-control-hover: var(--control-hover);
+  --color-control-border: var(--border);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
@@ -98,3 +107,21 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb, var(--foreground)) var(--scrollbar-track, transparent);
 }
+
+/* Filled controls adapt to the surface they sit on. */
+@layer components {
+  .surface-card {
+    @apply bg-card;
+    --control: #ffffff;
+    --control-hover: #eae9e5;
+    --soft: #ffffff;
+  }
+
+  .surface-inset {
+    @apply bg-white;
+    --control: var(--card);
+    --control-hover: #eae9e5;
+    --soft: var(--card);
+  }
+}
+

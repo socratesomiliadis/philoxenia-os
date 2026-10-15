@@ -30,6 +30,6 @@ export function WorkspaceToaster({ paused }: { paused: boolean }) {
     <Toaster position="bottom-right" visibleToasts={3} duration={4000} offset={16} mobileOffset={16}
       style={{ "--width": "min(420px, calc(100vw - 32px))", fontFamily: "var(--font-geist-sans), sans-serif" } as CSSProperties}
       className={paused ? "hidden!" : ""}
-      toastOptions={{ classNames: { toast: "rounded-2xl! border-line! bg-white!", content: "min-w-0", title: "text-sm! wrap-anywhere", description: "text-xs! text-muted-foreground! wrap-anywhere", actionButton: "bg-forest! text-white!" } }} />
+      toastOptions={{ classNames: { toast: "rounded-2xl! border-0! bg-white! shadow-lg!", content: "min-w-0", title: "text-sm! wrap-anywhere", description: "text-xs! text-muted-foreground! wrap-anywhere", actionButton: "bg-forest! text-white!" } }} />
   </div>;
 }

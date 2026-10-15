@@ -23,6 +23,7 @@ test("organizer sections support direct links, retained filters, browser history
         case "opportunities:list": return { entries: [], context: { interests: [], categories: [] } };
         case "ingestion:status": return { sources: [], runs: [], intervalDays: 1, month: "2026-11" };
         case "notifications:inbox": case "notifications:deliveries": case "openDoors:catalog": case "openDoors:ownOffers": case "openDoors:requests": return [];
+        case "mcp:connections": return { resource: "http://localhost:3000/api/mcp", connections: [], audit: [] };
         case "commandCenter:operations": return { oauthConfigured: true, emailConfigured: false, httpsSite: false, organizerCount: 2, failedEmails: 0, disabledEmails: 0, failedImports: 0, stuckImports: 0 };
         default: throw new Error(`Unexpected query: ${path}`);
       }
@@ -117,6 +118,7 @@ test("organizer reviews explained flags, handles stale notes, resolves help and 
         case "cohorts:overview": return { cohorts: 1, participants: 1, pendingInvitations: 0 };
         case "cohorts:roster": return { participants: [], invitations: [] };
         case "commandCenter:cohortSummary": return report();
+        case "mcp:connections": return { resource: "http://localhost:3000/api/mcp", connections: [], audit: [] };
         case "commandCenter:operations": return { oauthConfigured: true, emailConfigured: false, httpsSite: false, organizerCount: 1, failedEmails: 1, disabledEmails: 1, failedImports: 0, stuckImports: 0 };
         case "opportunities:list": return { entries: [], context: { interests: [], categories: [] } };
         case "notifications:inbox": case "notifications:deliveries": case "openDoors:catalog": case "openDoors:ownOffers": case "openDoors:requests": return [];

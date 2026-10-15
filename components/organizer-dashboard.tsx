@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useId, useState, type ComponentProps, type FormEvent } from "react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Check, Edit3, Mail, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Edit3, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useWorkspace, type Cohort } from "./workspace-context";
-import { CheckboxField, TextareaField, ActionButton, Badge, ChoiceField, Field, InlineError, PageHeading, Panel, errorMessage } from "./ui";
+import { CheckboxField, TextareaField, ActionButton, Badge, ChoiceField, Field, PageHeading, Panel, errorMessage } from "./ui";
 import { CohortRoster } from "./organizer-workspace";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { navigateOrganizer, useOrganizerSection, type OrganizerSection } from "./organizer-navigation";
@@ -20,11 +20,12 @@ import { OrganizerSprint } from "./organizer-sprint";
 import { SprintDashboard } from "./sprint-dashboard";
 import { SprintModal } from "./sprint-editors";
 import { dateRangeLabel, sprintDates } from "@/lib/cohort-dates";
-import { WorkspaceDialog } from "./workspace-dialog";
+import { DialogFormActions, WorkspaceDialog } from "./workspace-dialog";
 import { OpenDoors } from "./open-doors";
 import { CohortReport, PilotOperations } from "./cohort-report";
 import { DeliveryManager } from "./workspace-inbox";
 import { OrganizerPanel } from "./organizer-panel";
+import { McpConnections } from "./mcp-connections";
 
 type Roster = FunctionReturnType<typeof api.cohorts.roster>;
 type CohortInput = { name: string; description: string; startDate: string; status: Cohort["status"] };
@@ -129,24 +130,24 @@ function OrganizerView({ preview = false, cohorts, selected, roster, rosterLoadi
             <div className="flex flex-wrap gap-2"><ActionButton appearance="secondary" onClick={() => setEditor("edit")} disabled={preview}><Edit3 className="size-3.5" aria-hidden />Edit cohort</ActionButton><OrganizerSprint cohort={selected} compact /></div>
           </section>
           <Tabs value={location === "participants" ? "participants" : "cohorts"} onValueChange={(value) => navigateOrganizer(value as OrganizerSection)} className="min-w-0 gap-5">
-            <TabsList variant="line" aria-label="Cohort views" activateOnFocus={false} className="h-auto! w-full justify-start gap-5 border-b border-line p-0">
+            <TabsList variant="line" aria-label="Cohort views" activateOnFocus={false} className="h-auto! w-full justify-start gap-5 p-0">
               <TabsTrigger value="cohorts" className="min-h-11 flex-none px-1 py-3 transition-colors focus-visible:outline-none! data-active:text-forest dark:data-active:text-forest after:bg-forest after:bottom-0!">Overview</TabsTrigger>
               <TabsTrigger value="participants" className="min-h-11 flex-none gap-2 px-1 py-3 transition-colors focus-visible:outline-none! data-active:text-forest dark:data-active:text-forest after:bg-forest after:bottom-0!">Participants{!rosterLoading ? <span className="text-xs tabular-nums text-muted-foreground">{roster.participants.length + roster.invitations.filter((invite) => invite.status === "pending").length}</span> : null}</TabsTrigger>
             </TabsList>
             <OrganizerPanel active={location === "cohorts"} value="cohorts"><CohortReport key={`report-${selected._id}`} cohort={selected} onShowParticipants={() => navigateOrganizer("participants")} /></OrganizerPanel>
             <OrganizerPanel active={location === "participants"} value="participants">{rosterLoading ? <p role="status" className="py-8 text-sm text-muted-foreground">Loading participants…</p> : <CohortRoster key={selected._id} roster={roster} preview={preview} completed={selected.status === "completed"} busyId={busyId} search={search} onSearch={setSearch} onInvite={() => setInviteOpen(true)} onCopy={() => void copySignIn()} onManage={setManaging} onMission={setMissionParticipant} onSprint={setSprintParticipant} onRevoke={(id) => void revokeInvitation(id)} onGraduate={(participant) => void graduateParticipant(participant)} />}</OrganizerPanel>
           </Tabs>
-        </> : <section className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-line p-6 text-center"><h2 className="text-xl font-medium tracking-tight">No cohorts yet</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Create a cohort, then invite your Hustlers.</p><ActionButton className="mt-5" disabled={preview} onClick={() => setEditor("create")}>Create cohort</ActionButton></section>}
+        </> : <section className="flex min-h-72 flex-col items-center justify-center rounded-2xl surface-card p-6 text-center"><h2 className="text-xl font-medium tracking-tight">No cohorts yet</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Create a cohort, then invite your Hustlers.</p><ActionButton className="mt-5" disabled={preview} onClick={() => setEditor("create")}>Create cohort</ActionButton></section>}
       </OrganizerPanel>
       <OrganizerPanel active={section === "opportunities"} value="opportunities" className="min-w-0">
         <Tabs value={location === "imports" ? "imports" : "opportunities"} onValueChange={(value) => navigateOrganizer(value as OrganizerSection)} className="min-w-0 gap-5">
-          <TabsList variant="line" aria-label="Opportunity management" activateOnFocus={false} className="h-auto! w-full justify-start gap-5 border-b border-line p-0">{[{ value: "opportunities", label: "Listings" }, { value: "imports", label: "Imports" }].map(({ value, label }) => <TabsTrigger key={value} value={value} className="min-h-11 flex-none px-1 py-3 transition-colors focus-visible:outline-none! data-active:text-forest dark:data-active:text-forest after:bg-forest after:bottom-0!">{label}</TabsTrigger>)}</TabsList>
+          <TabsList variant="line" aria-label="Opportunity management" activateOnFocus={false} className="h-auto! w-full justify-start gap-5 p-0">{[{ value: "opportunities", label: "Listings" }, { value: "imports", label: "Imports" }].map(({ value, label }) => <TabsTrigger key={value} value={value} className="min-h-11 flex-none px-1 py-3 transition-colors focus-visible:outline-none! data-active:text-forest dark:data-active:text-forest after:bg-forest after:bottom-0!">{label}</TabsTrigger>)}</TabsList>
           <OrganizerPanel active={location === "opportunities"} value="opportunities"><OpportunityManager /></OrganizerPanel>
           <OrganizerPanel active={location === "imports"} value="imports"><OpportunityImports expanded /></OrganizerPanel>
         </Tabs>
       </OrganizerPanel>
       <OrganizerPanel active={section === "open-doors"} value="open-doors"><OpenDoors organizer /></OrganizerPanel>
-      <OrganizerPanel active={section === "settings"} value="settings" className="space-y-6">{preview ? <Panel className="p-6"><h2 className="text-xl font-medium">System status</h2><p className="mt-2 text-sm text-muted-foreground">Sign in as an organizer to review configuration and email delivery.</p></Panel> : <><PilotOperations /><DeliveryManager /></>}</OrganizerPanel>
+      <OrganizerPanel active={section === "settings"} value="settings" className="space-y-6">{preview ? <Panel className="p-6"><h2 className="text-xl font-medium">System status</h2><p className="mt-2 text-sm text-muted-foreground">Sign in as an organizer to review configuration and email delivery.</p></Panel> : <><McpConnections /><PilotOperations /><DeliveryManager /></>}</OrganizerPanel>
     </Tabs>
     {deleting?.profile && onDeleteUser ? <DeleteUserDialog name={deleting.profile.name} email={deleting.profile.email} onClose={() => setDeleting(null)} onDelete={async (confirmationEmail) => {
       await onDeleteUser(deleting.profile!._id, confirmationEmail);
@@ -163,11 +164,12 @@ function OrganizerView({ preview = false, cohorts, selected, roster, rosterLoadi
   </div></div>;
 }
 
-function EditorModal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
-  return <WorkspaceDialog title={title} onClose={onClose} closeLabel="Close organizer dialog" bodyClassName="@container/editor" className="rounded-2xl">{children}</WorkspaceDialog>;
+function EditorModal(props: Omit<ComponentProps<typeof WorkspaceDialog>, "closeLabel" | "bodyClassName">) {
+  return <WorkspaceDialog closeLabel="Close organizer dialog" bodyClassName="@container/editor" {...props} />;
 }
 
 function CohortEditor({ cohort, onClose, onSave }: { cohort?: Cohort; onClose: () => void; onSave: (input: CohortInput) => Promise<void> }) {
+  const formId = useId();
   const [name, setName] = useState(cohort?.name ?? "");
   const [description, setDescription] = useState(cohort?.description ?? "");
   const [startDate, setStartDate] = useState(cohort?.startDate ?? "");
@@ -182,20 +184,22 @@ function CohortEditor({ cohort, onClose, onSave }: { cohort?: Cohort; onClose: (
     try { await onSave({ name, description, startDate, status }); }
     catch (error) { setError(errorMessage(error)); setBusy(false); }
   }
-  return <EditorModal title={cohort ? "Edit cohort" : "Create cohort"} onClose={() => { if (!busy) onClose(); }}><form onSubmit={submit} className="space-y-5"><Field label="Cohort name" placeholder="Winter 2026 · Cohort 01" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={80} /><Field label="Arrival date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required /><p className="-mt-2 text-xs text-muted-foreground">{range}</p><TextareaField label="A few words about this cohort" labelClassName="text-forest" className="w-full rounded-xl border border-line bg-white p-3 text-sm" rows={3} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Two weeks for founders building their next idea." />{cohort ? <ChoiceField label="Status" value={status} options={[{ value: "upcoming", label: "Upcoming" }, { value: "active", label: "Active" }, { value: "completed", label: "Completed" }]} onChange={(value) => setStatus(value as Cohort["status"])} /> : null}<InlineError message={error} /><div className="flex justify-end gap-2 pt-2"><Button variant="secondary" onClick={onClose} disabled={busy} className="rounded-xl">Cancel</Button><ActionButton type="submit" busy={busy}>{cohort ? "Save changes" : "Create cohort"}</ActionButton></div></form></EditorModal>;
+  return <EditorModal title={cohort ? "Edit cohort" : "Create cohort"} busy={busy} onClose={onClose} footer={<DialogFormActions formId={formId} onClose={onClose} busy={busy} error={error} label={cohort ? "Save changes" : "Create cohort"} />}><form id={formId} onSubmit={submit} className="space-y-5"><Field label="Cohort name" placeholder="Winter 2026 · Cohort 01" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={80} /><Field label="Arrival date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required /><p className="-mt-2 text-xs text-muted-foreground">{range}</p><TextareaField label="A few words about this cohort" labelClassName="text-forest" rows={3} maxLength={1000} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Two weeks for founders building their next idea." />{cohort ? <ChoiceField label="Status" value={status} options={[{ value: "upcoming", label: "Upcoming" }, { value: "active", label: "Active" }, { value: "completed", label: "Completed" }]} onChange={(value) => setStatus(value as Cohort["status"])} /> : null}</form></EditorModal>;
 }
 
 function InviteEditor({ cohortName, onClose, onSave }: { cohortName: string; onClose: () => void; onSave: (email: string, name: string) => Promise<void> }) {
+  const formId = useId();
   const [name, setName] = useState(""); const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null);
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError(null);
     try { await onSave(email, name); } catch (error) { setError(errorMessage(error)); setBusy(false); }
   }
-  return <EditorModal title="Invite a Hustler" onClose={() => { if (!busy) onClose(); }}><form onSubmit={submit} className="space-y-5"><p className="text-sm leading-6 text-muted-foreground">Invite them to {cohortName}. They can use Google or email and password with the email address you enter here.</p><Field label="Name (optional)" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} autoComplete="name" /><Field label="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /><InlineError message={error} /><div className="flex justify-end gap-2"><Button variant="secondary" onClick={onClose} disabled={busy} className="rounded-xl">Cancel</Button><ActionButton type="submit" busy={busy}><Mail className="size-4" aria-hidden />Save invitation</ActionButton></div></form></EditorModal>;
+  return <EditorModal title="Invite a Hustler" size="compact" busy={busy} onClose={onClose} footer={<DialogFormActions formId={formId} onClose={onClose} busy={busy} error={error} label="Save invitation" />}><form id={formId} onSubmit={submit} className="space-y-5"><p className="text-sm leading-6 text-muted-foreground">Invite them to {cohortName}. They can use Google or email and password with the email address you enter here.</p><Field label="Name (optional)" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} autoComplete="name" /><Field label="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></form></EditorModal>;
 }
 
 function MembershipEditor({ participant, cohort, canSuspend, onClose, onSave, onDelete }: { participant: Roster["participants"][number]; cohort: Cohort; canSuspend: boolean; onDelete?: () => void; onClose: () => void; onSave: (status: "active" | "revoked", override: string | undefined, suspended: boolean) => Promise<void> }) {
+  const formId = useId();
   const [status, setStatus] = useState(participant.status);
   const [override, setOverride] = useState(participant.startDateOverride ?? "");
   const [suspended, setSuspended] = useState(participant.profile?.suspended ?? false);
@@ -205,10 +209,11 @@ function MembershipEditor({ participant, cohort, canSuspend, onClose, onSave, on
     try { await onSave(status, override || undefined, suspended); }
     catch (error) { setError(errorMessage(error)); setBusy(false); }
   }
-  return <EditorModal title="Participant access & dates" onClose={() => { if (!busy) onClose(); }}><form onSubmit={submit} className="space-y-5"><p className="text-xs text-muted-foreground">{participant.profile?.name} · {participant.profile?.email}</p><ChoiceField label="Cohort access" value={status} options={[{ value: "active", label: "Active" }, { value: "revoked", label: "Revoked" }]} onChange={(value) => setStatus(value as "active" | "revoked")} /><Field label="Individual arrival date (optional)" type="date" value={override} onChange={(e) => setOverride(e.target.value)} /><p className="text-sm leading-6 text-muted-foreground">Leave blank to follow the cohort: {dateRangeLabel(cohort.startDate, cohort.endDate)}. An override always creates a 14-day stay.</p>{canSuspend ? <CheckboxField checked={suspended} onCheckedChange={setSuspended} className="rounded-xl border border-line bg-soft p-4" description="Blocks this account across every cohort until you restore access." contentClassName="items-start gap-3">Suspend all workspace access</CheckboxField> : null}<InlineError message={error} /><div className="flex justify-end gap-2"><Button variant="secondary" onClick={onClose} disabled={busy} className="rounded-xl">Cancel</Button><ActionButton type="submit" busy={busy}><Check className="size-4" aria-hidden />Save changes</ActionButton></div></form>{onDelete ? <div className="mt-6 border-t border-line pt-5"><h3 className="text-sm font-medium">Delete user</h3><p className="mt-2 text-xs leading-6 text-muted-foreground">Permanently remove this account, all cohort memberships, and mission data. You can invite the email again afterward.</p><Button variant="ghost" disabled={busy} onClick={onDelete} className="mt-3 min-h-11 px-2 text-sm text-red-700"><Trash2 className="size-4" aria-hidden />Delete user</Button></div> : null}</EditorModal>;
+  return <EditorModal title="Participant access & dates" busy={busy} onClose={onClose} footer={<DialogFormActions formId={formId} onClose={onClose} busy={busy} error={error} label="Save changes" />}><form id={formId} onSubmit={submit} className="space-y-5"><p className="text-xs text-muted-foreground">{participant.profile?.name} · {participant.profile?.email}</p><ChoiceField label="Cohort access" value={status} options={[{ value: "active", label: "Active" }, { value: "revoked", label: "Revoked" }]} onChange={(value) => setStatus(value as "active" | "revoked")} /><Field label="Individual arrival date (optional)" type="date" value={override} onChange={(e) => setOverride(e.target.value)} /><p className="text-sm leading-6 text-muted-foreground">Leave blank to follow the cohort: {dateRangeLabel(cohort.startDate, cohort.endDate)}. An override always creates a 14-day stay.</p>{canSuspend ? <CheckboxField checked={suspended} onCheckedChange={setSuspended} className="rounded-xl bg-soft p-4" description="Blocks this account across every cohort until you restore access." contentClassName="items-start gap-3">Suspend all workspace access</CheckboxField> : null}</form>{onDelete ? <div className="mt-6 pt-5"><h3 className="text-sm font-medium">Delete user</h3><p className="mt-2 text-xs leading-6 text-muted-foreground">Permanently remove this account, all cohort memberships, and mission data. You can invite the email again afterward.</p><Button variant="ghost" disabled={busy} onClick={onDelete} className="mt-3 min-h-11 px-2 text-sm text-red-700"><Trash2 className="size-4" aria-hidden />Delete user</Button></div> : null}</EditorModal>;
 }
 
 function DeleteUserDialog({ name, email, onClose, onDelete }: { name: string; email: string; onClose: () => void; onDelete: (confirmationEmail: string) => Promise<void> }) {
+  const formId = useId();
   const [confirmationEmail, setConfirmationEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -217,5 +222,5 @@ function DeleteUserDialog({ name, email, onClose, onDelete }: { name: string; em
     try { await onDelete(confirmationEmail); }
     catch (failure) { setError(errorMessage(failure)); setBusy(false); }
   }
-  return <EditorModal title={`Delete ${name || email}?`} onClose={() => { if (!busy) onClose(); }}><form onSubmit={submit} className="space-y-5"><p className="text-sm leading-7 wrap-anywhere text-muted-foreground">Permanently delete <strong className="font-medium text-foreground">{email}</strong> from Philoxenia OS. This removes their sign-in account, active sessions, invitations, memberships across all cohorts, onboarding answers, and missions. This cannot be undone.</p><p className="text-sm leading-6 text-muted-foreground">You can invite this email again. Their next sign-in will start fresh with onboarding.</p><Field label="Type the email to confirm" type="email" autoComplete="off" autoFocus value={confirmationEmail} onChange={(event) => setConfirmationEmail(event.target.value)} required /><InlineError message={error} /><div className="flex flex-wrap justify-end gap-3"><ActionButton appearance="secondary" onClick={onClose} disabled={busy}>Cancel</ActionButton><ActionButton type="submit" appearance="danger" busy={busy} disabled={confirmationEmail.trim().toLowerCase() !== email.toLowerCase()}><Trash2 className="size-4" aria-hidden />Delete user permanently</ActionButton></div></form></EditorModal>;
+  return <EditorModal title={`Delete ${name || email}?`} size="compact" busy={busy} onClose={onClose} footer={<DialogFormActions formId={formId} onClose={onClose} busy={busy} error={error} label="Delete user permanently" danger disabled={confirmationEmail.trim().toLowerCase() !== email.toLowerCase()} />}><form id={formId} onSubmit={submit} className="space-y-5"><p className="text-sm leading-7 wrap-anywhere text-muted-foreground">Permanently delete <strong className="font-medium text-foreground">{email}</strong> from Philoxenia OS. This removes their sign-in account, active sessions, invitations, memberships across all cohorts, onboarding answers, and missions. This cannot be undone.</p><p className="text-sm leading-6 text-muted-foreground">You can invite this email again. Their next sign-in will start fresh with onboarding.</p><Field label="Type the email to confirm" type="email" autoComplete="off" autoFocus value={confirmationEmail} onChange={(event) => setConfirmationEmail(event.target.value)} required /></form></EditorModal>;
 }

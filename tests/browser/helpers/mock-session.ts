@@ -8,6 +8,15 @@ export async function mockSession(page: Page, options: {
   mutate: (path: string, args: Record<string, unknown>) => unknown;
   action?: (path: string, args: Record<string, unknown>) => unknown | Promise<unknown>;
 }) {
+  // The Next.js development badge can overlap fixed dialog actions. Keep that
+  // tooling out of application hit areas; page and console errors stay visible.
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      const style = document.createElement("style");
+      style.textContent = "nextjs-portal { display: none !important; }";
+      document.head.append(style);
+    });
+  });
   const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
   const token = `${encode({ alg: "RS256" })}.${encode({ sub: options.user.id, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600 })}.test-signature`;
   await page.route("**/api/auth/**", async (route) => {

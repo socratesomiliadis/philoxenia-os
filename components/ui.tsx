@@ -13,10 +13,11 @@ import Link from "next/link";
 import { useId, useState, type ReactNode, type ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 import { useModalNotifications } from "./notification-context";
+import { controlSurface } from "./ui/control-styles";
 
 export function ActionButton({ children, busy, appearance = "primary", className = "", ...props }: Omit<ComponentProps<typeof Button>, "children"> & { busy?: boolean; appearance?: "primary" | "secondary" | "danger"; children?: ReactNode }) {
-  const colors = { primary: "bg-forest text-primary-foreground hover:bg-forest/90", secondary: "border border-line bg-white text-foreground hover:bg-soft", danger: "bg-red-700 text-white hover:bg-red-800" }[appearance];
-  return <Button {...props} aria-busy={busy || undefined} disabled={props.disabled || busy} className={cn("min-h-11 rounded-xl px-4 text-sm font-medium shadow-control transition-[background-color,transform] duration-150 ease-ui active:scale-[0.98] disabled:shadow-none", colors, className)}>
+  const colors = appearance === "danger" ? "bg-red-700 text-white hover:bg-red-800" : "";
+  return <Button variant={appearance === "secondary" ? "secondary" : "default"} {...props} aria-busy={busy || undefined} disabled={props.disabled || busy} className={cn("min-h-11", colors, className)}>
     {busy ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : null}{children}
   </Button>;
 }
@@ -26,14 +27,14 @@ export function Field({ label, className = "", id, ...props }: ComponentProps<ty
   const fieldId = id ?? generatedId;
   return <FormField className="min-w-0 w-full gap-2">
     <FieldLabel htmlFor={fieldId} className="text-sm font-medium text-foreground">{label}</FieldLabel>
-    {props.type === "search" ? <SearchField {...props} id={fieldId} className={className} /> : <Input {...props} id={fieldId} className={cn("min-h-11 w-full min-w-0 rounded-xl border border-line bg-white px-3 text-sm shadow-control transition-colors focus:border-forest focus:ring-2 focus:ring-forest/10", className)} />}
+    {props.type === "search" ? <SearchField {...props} id={fieldId} className={className} /> : <Input {...props} id={fieldId} className={className} />}
   </FormField>;
 }
 
 export function SearchField({ containerClassName, className, children, ...props }: ComponentProps<typeof Input> & { containerClassName?: string; children?: ReactNode }) {
-  return <div data-slot="search-field" className={cn("flex min-w-0 items-center gap-2.5 rounded-xl border border-line bg-white px-3.5 shadow-control transition-[border-color,box-shadow] duration-150 focus-within:border-forest/40 focus-within:ring-2 focus-within:ring-forest/10", containerClassName)}>
+  return <div data-slot="search-field" className={cn("flex min-w-0 items-center gap-2.5 rounded-xl border px-3.5 transition-[box-shadow] duration-150 focus-within:ring-2 focus-within:ring-ring/35", controlSurface, containerClassName)}>
     <Search className="size-[18px] shrink-0 text-muted-foreground" aria-hidden />
-    <Input {...props} type="search" className={cn("h-11 min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 py-0 text-sm shadow-none outline-none! placeholder:text-muted-foreground/70 focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent [&::-webkit-search-cancel-button]:appearance-none", className)} />
+    <Input {...props} type="search" className={cn("min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 py-0 shadow-none focus-visible:border-transparent focus-visible:ring-0 [&::-webkit-search-cancel-button]:appearance-none", className)} />
     {children}
   </div>;
 }
@@ -44,7 +45,7 @@ export function TextareaField({ label, description, className, labelClassName, i
   const descriptionId = `${fieldId}-description`;
   return <FormField className="min-w-0 gap-2">
     <FieldLabel htmlFor={fieldId} className={cn("text-sm font-medium text-foreground", labelClassName)}>{label}</FieldLabel>
-    <Textarea {...props} id={fieldId} aria-describedby={description ? descriptionId : props["aria-describedby"]} className={cn("w-full min-w-0 resize-y rounded-xl border border-line bg-white p-3 text-sm leading-7 focus:border-forest focus:ring-2 focus:ring-forest/10", className)} />
+    <Textarea {...props} id={fieldId} aria-describedby={description ? descriptionId : props["aria-describedby"]} className={className} />
     {description ? <FieldDescription id={descriptionId} className="text-xs leading-5 text-muted-foreground">{description}</FieldDescription> : null}
   </FormField>;
 }
@@ -55,7 +56,7 @@ export function CheckboxField({ children, description, className, contentClassNa
   const descriptionId = `${fieldId}-description`;
   return <div className={cn("flex min-w-0 flex-col gap-1", props.disabled && "opacity-50", className)}>
     <Label htmlFor={fieldId} className={cn("flex min-w-0 cursor-pointer items-center gap-2.5 text-sm font-normal", contentClassName)}>
-      <Checkbox {...props} id={fieldId} aria-describedby={description ? descriptionId : props["aria-describedby"]} className={cn("size-4 shrink-0 rounded-md bg-soft shadow-control", controlClassName)} />
+      <Checkbox {...props} id={fieldId} aria-describedby={description ? descriptionId : props["aria-describedby"]} className={cn("size-4 shrink-0 rounded-md", controlClassName)} />
       <span className="min-w-0 text-foreground wrap-anywhere">{children}</span>
     </Label>
     {description ? <FieldDescription id={descriptionId} className="mt-2 ps-7 text-xs leading-5 text-muted-foreground">{description}</FieldDescription> : null}
@@ -71,7 +72,7 @@ export function PageHeading({ title, description, action }: { title: string; des
 }
 
 export function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <section className={cn("min-w-0 rounded-[24px] border border-line bg-white", className)}>{children}</section>;
+  return <section className={cn("surface-card min-w-0 rounded-[24px]", className)}>{children}</section>;
 }
 
 export function IconTile({ icon: Icon, tone = "neutral", className = "" }: { icon: LucideIcon; tone?: "neutral" | "green" | "warm"; className?: string }) {
@@ -102,8 +103,8 @@ export function ChoiceField({ label, value, options, onChange, disabled = false,
   return <FormField className="min-w-0 w-full gap-2">
     {!compact ? <FieldLabel htmlFor={id} className="text-xs font-medium text-muted-foreground">{label}</FieldLabel> : null}
     <Select open={open} onOpenChange={setOpen} value={key(value)} items={options.map((option) => ({ value: key(option.value), label: option.label }))} onValueChange={(value) => onChange(value === "__empty__" ? "" : String(value ?? ""))} disabled={disabled}>
-      <SelectTrigger id={id} aria-label={compact ? label : undefined} className={`w-full min-w-0 rounded-xl border border-line bg-white px-3 text-start text-sm text-foreground shadow-control ${compact ? "min-h-10" : "min-h-11"}`}><SelectValue className="min-w-0 flex-1 truncate" /></SelectTrigger>
-      <SelectContent align="start" alignItemWithTrigger={false} aria-label={label} className="scrollbar-thin max-h-64 max-w-[calc(100vw-32px)] rounded-xl border border-line bg-white p-1 shadow-lg ring-0">{options.map((option) => <SelectItem key={key(option.value)} value={key(option.value)} disabled={option.disabled} className="min-h-10 rounded-lg px-3 py-2 pe-8 text-sm text-foreground data-selected:bg-sage data-selected:text-forest"><span className="min-w-0 flex-1 whitespace-normal wrap-anywhere">{option.label}</span></SelectItem>)}</SelectContent>
+      <SelectTrigger id={id} size={compact ? "sm" : "default"} aria-label={compact ? label : undefined} className="w-full"><SelectValue className="min-w-0 flex-1 truncate" /></SelectTrigger>
+      <SelectContent align="start" alignItemWithTrigger={false} aria-label={label} className="scrollbar-thin max-h-64 max-w-[calc(100vw-32px)] rounded-xl surface-card p-1 shadow-lg ring-0">{options.map((option) => <SelectItem key={key(option.value)} value={key(option.value)} disabled={option.disabled} className="min-h-10 rounded-lg px-3 py-2 pe-8 text-sm text-foreground data-selected:bg-sage data-selected:text-forest"><span className="min-w-0 flex-1 whitespace-normal wrap-anywhere">{option.label}</span></SelectItem>)}</SelectContent>
     </Select>
   </FormField>;
 }

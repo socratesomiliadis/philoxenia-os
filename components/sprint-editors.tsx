@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useId, useState, type ComponentProps, type FormEvent } from "react";
 import { TriangleAlert } from "lucide-react";
 import { activityFromOpportunity, activitySchema, assertInStay, overlapping, outcomeLabels, outcomeSchema, outcomeTypes, progressSchema, type ActivityInput, type GoalLink, type OutcomeInput, type ProgressInput, type SprintData, type SprintEntry, type SprintOutcome } from "@/lib/sprint";
 import { eventTimeLabel, sfDateTimeInput, type Opportunity } from "@/lib/opportunities";
 import { initialOccurrence, parseSprintTime, sfTimeCandidates } from "@/lib/sprint-time";
-import { TextareaField, ActionButton, Field, InlineError, errorMessage } from "./ui";
+import { CheckboxField, TextareaField, ActionButton, Field, InlineError, errorMessage } from "./ui";
 import { SelectField } from "./opportunity-parts";
-import { WorkspaceDialog } from "./workspace-dialog";
+import { DialogFormActions, WorkspaceDialog } from "./workspace-dialog";
 
-export function SprintModal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
-  return <WorkspaceDialog title={title} onClose={onClose} closeLabel="Close Sprint dialog" bodyClassName="@container/sprint-dialog [&_label]:text-sm [&_label]:leading-5 [&_label]:text-foreground" wide={wide}>{children}</WorkspaceDialog>;
+export function SprintModal(props: Omit<ComponentProps<typeof WorkspaceDialog>, "closeLabel" | "bodyClassName">) {
+  return <WorkspaceDialog closeLabel="Close Sprint dialog" bodyClassName="@container/sprint-dialog [&_label]:text-sm [&_label]:leading-5 [&_label]:text-foreground" {...props} />;
 }
 
 function NotesField({ label = "Notes (optional)", value, onChange }: { label?: string; value: string; onChange: (value: string) => void }) {
-  return <TextareaField label={label} value={value} onChange={(event) => onChange(event.target.value)} maxLength={3000} rows={3} className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm leading-6" />;
+  return <TextareaField label={label} value={value} onChange={(event) => onChange(event.target.value)} maxLength={3000} rows={3} />;
 }
 
 function GoalSelect({ data, value, onChange }: { data: SprintData; value: string; onChange: (value: string) => void }) {
@@ -28,6 +28,7 @@ function RepeatedTime({ label, value, occurrence, onChange }: { label: string; v
 }
 
 export function ActivityEditor({ data, entry, opportunity, initialDay, supportMeeting, onSave, onClose }: { data: SprintData; entry?: SprintEntry; opportunity?: Opportunity; initialDay?: string; supportMeeting?: { title: string; notes: string }; onSave: (input: ActivityInput, goal?: GoalLink, allowOverlap?: boolean) => Promise<void>; onClose: () => void }) {
+  const formId = useId();
   const initial = entry ?? (supportMeeting ? { kind: "meeting" as const, title: supportMeeting.title, notes: supportMeeting.notes, location: "", startAt: undefined, endAt: undefined, day: undefined } : opportunity ? activityFromOpportunity(opportunity) : { kind: "task" as const, title: "", notes: "", location: "", day: initialDay });
   const [kind, setKind] = useState(initial.kind);
   const [title, setTitle] = useState(initial.title);
@@ -60,7 +61,7 @@ export function ActivityEditor({ data, entry, opportunity, initialDay, supportMe
     } catch (failure) { setError(failure && typeof failure === "object" && "issues" in failure ? (failure as { issues: { message: string }[] }).issues[0].message : errorMessage(failure)); }
     finally { setBusy(false); }
   }
-  return <SprintModal title={supportMeeting ? "Schedule agreed support" : entry ? "Edit activity" : opportunity ? "Add opportunity to Sprint" : data.management ? "Add cohort activity" : "Add activity"} onClose={() => { if (!busy) onClose(); }}><form onSubmit={submit} className="space-y-6">
+  return <SprintModal title={supportMeeting ? "Schedule agreed support" : entry ? "Edit activity" : opportunity ? "Add opportunity to Sprint" : data.management ? "Add cohort activity" : "Add activity"} busy={busy} onClose={onClose} footer={<DialogFormActions formId={formId} onClose={onClose} busy={busy} error={error} label={entry ? "Save activity" : "Add to Sprint"} />}><form id={formId} onSubmit={submit} className="space-y-6">
     <p className="text-sm leading-6 text-muted-foreground">{supportMeeting ? "Enter the time and place you agreed with the alumnus. They’ll receive an update; your Sprint records attendance and outcomes separately." : data.management ? "Shared with the cohort. Each Hustler records their own progress." : "Plan a useful next step. Your schedule is visible to you and the organizers."}</p>
     <div className="space-y-4">
       <Field label="Activity title" required minLength={3} maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Review my prototype with a founder" />
@@ -69,9 +70,9 @@ export function ActivityEditor({ data, entry, opportunity, initialDay, supportMe
         <Field label="Location or meeting link (optional)" maxLength={200} value={location} onChange={(event) => setLocation(event.target.value)} placeholder="SoMa · venue to be confirmed" />
       </div>
     </div>
-    <section aria-label="Activity schedule" className="space-y-4 rounded-2xl bg-soft p-4">
+    <section aria-label="Activity schedule" className="surface-inset space-y-4 rounded-2xl p-4">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1"><h3 className="text-sm font-medium text-foreground">Schedule</h3><span className="text-xs text-muted-foreground">San Francisco time</span></div>
-      <label className="flex min-h-10 items-center gap-3 text-sm text-foreground"><input type="checkbox" checked={timed} disabled={kind === "event" || kind === "meeting"} onChange={(event) => { setTimed(event.target.checked); setAllowOverlap(false); }} className="size-4 shrink-0 accent-forest" />Schedule a time</label>
+      <CheckboxField checked={timed} disabled={kind === "event" || kind === "meeting"} onCheckedChange={(checked) => { setTimed(checked); setAllowOverlap(false); }} contentClassName="min-h-10 gap-3">Schedule a time</CheckboxField>
       {timed ? <div className="grid min-w-0 gap-4 @min-[500px]/sprint-dialog:grid-cols-2">
         <div className="min-w-0 space-y-3"><Field label="Starts (SF time)" className="min-w-0" type="datetime-local" required min={`${data.startDate}T00:00`} value={start} onChange={(event) => { setStart(event.target.value); setStartOccurrence(""); setAllowOverlap(false); }} /><RepeatedTime label="Repeated start time" value={start} occurrence={startOccurrence} onChange={(value) => { setStartOccurrence(value); setAllowOverlap(false); }} /></div>
         <div className="min-w-0 space-y-3"><Field label="Ends (SF time)" className="min-w-0" type="datetime-local" required value={end} onChange={(event) => { setEnd(event.target.value); setEndOccurrence(""); setAllowOverlap(false); }} /><RepeatedTime label="Repeated end time" value={end} occurrence={endOccurrence} onChange={(value) => { setEndOccurrence(value); setAllowOverlap(false); }} /></div>
@@ -79,13 +80,13 @@ export function ActivityEditor({ data, entry, opportunity, initialDay, supportMe
     </section>
     {opportunity ? <p className="rounded-xl bg-sage/60 p-4 text-xs leading-6 text-muted-foreground">Adding this to your Sprint does not register you or arrange a meeting.{opportunity.kind === "event" && opportunity.endAt === undefined ? " No end time was supplied; a one-hour duration is prefilled. Adjust it before saving." : ""}</p> : null}
     {!data.management && !supportMeeting ? <div className="space-y-2"><GoalSelect data={data} value={goal} onChange={setGoal} />{entry?.progress.goalLink && entry.progress.goalLink.missionConfirmedAt !== data.missionConfirmedAt ? <p className="text-xs leading-5 text-muted-foreground">This activity was linked to a previous mission. Choose a current goal to relink it.</p> : null}<p className="text-xs leading-5 text-muted-foreground">{entry?.progress.goalLink ? "Changing the linked goal resets this activity’s contribution. Update progress after you complete it." : "Link a goal, then report your contribution when you complete this activity."}</p></div> : null}
-    <details open={initial.notes ? true : undefined} className="rounded-xl border border-line px-4 py-3"><summary className="cursor-pointer text-sm font-medium text-muted-foreground">{initial.notes ? "Activity notes" : "Add notes (optional)"}</summary><div className="pt-4"><NotesField value={notes} onChange={setNotes} /></div></details>
-    {conflicts.length ? <div className="space-y-3 rounded-xl bg-warm p-4"><p className="flex items-start gap-2 text-sm leading-6 text-foreground"><TriangleAlert className="mt-1 size-4 shrink-0" aria-hidden />Overlaps: {conflicts.map((item) => item.title).join(", ")}</p><label className="flex items-start gap-3 text-sm leading-6"><input type="checkbox" checked={allowOverlap} onChange={(event) => setAllowOverlap(event.target.checked)} className="mt-1 size-4 shrink-0 accent-forest" />Keep overlapping time</label></div> : null}
-    <InlineError message={error} /><div className="flex flex-wrap justify-end gap-3 border-t border-line pt-5"><ActionButton appearance="secondary" disabled={busy} onClick={onClose}>Cancel</ActionButton><ActionButton type="submit" busy={busy}>{entry ? "Save activity" : "Add to Sprint"}</ActionButton></div>
+    <details open={initial.notes ? true : undefined} className="rounded-xl surface-inset px-4 py-3"><summary className="cursor-pointer text-sm font-medium text-muted-foreground">{initial.notes ? "Activity notes" : "Add notes (optional)"}</summary><div className="pt-4"><NotesField value={notes} onChange={setNotes} /></div></details>
+    {conflicts.length ? <div className="space-y-3 rounded-xl bg-warm p-4"><p className="flex items-start gap-2 text-sm leading-6 text-foreground"><TriangleAlert className="mt-1 size-4 shrink-0" aria-hidden />Overlaps: {conflicts.map((item) => item.title).join(", ")}</p><CheckboxField checked={allowOverlap} onCheckedChange={setAllowOverlap} contentClassName="items-start gap-3">Keep overlapping time</CheckboxField></div> : null}
   </form></SprintModal>;
 }
 
 export function ProgressEditor({ data, entry, onSave, onClose }: { data: SprintData; entry: SprintEntry; onSave: (input: ProgressInput) => Promise<void>; onClose: () => void }) {
+  const formId = useId();
   const [status, setStatus] = useState(entry.progress.status);
   const [goal, setGoal] = useState(entry.progress.goalLink?.missionConfirmedAt === data.missionConfirmedAt && entry.progress.goalLink ? String(entry.progress.goalLink.index) : "");
   const [missionVersion] = useState(data.missionConfirmedAt);
@@ -100,7 +101,7 @@ export function ProgressEditor({ data, entry, onSave, onClose }: { data: SprintD
     setBusy(true);
     try { await onSave(input.data); } catch (failure) { setError(errorMessage(failure)); } finally { setBusy(false); }
   }
-  return <SprintModal title="Progress & attendance" onClose={() => { if (!busy) onClose(); }}><form onSubmit={submit} className="space-y-5">
+  return <SprintModal title="Progress & attendance" busy={busy} onClose={onClose} footer={<DialogFormActions formId={formId} onClose={onClose} busy={busy} error={error} label="Save progress" />}><form id={formId} onSubmit={submit} className="space-y-5">
     <h3 className="text-base font-medium text-foreground">{entry.title}</h3>
     <SelectField label="Activity status" value={status} onChange={(event) => setStatus(event.target.value as typeof status)}>
       <option value="planned">Planned</option>
@@ -112,12 +113,11 @@ export function ProgressEditor({ data, entry, onSave, onClose }: { data: SprintD
       <Field label="Contribution to this goal" type="number" required min={0} max={100} step={1} value={contribution} onChange={(event) => setContribution(event.target.value)} />
       <p className="text-xs leading-6 text-muted-foreground">Units: {data.goals[Number(goal)]?.metric}. Enter only what you achieved. Zero records completion without adding goal progress.</p>
     </> : <p className="text-xs leading-6 text-muted-foreground">Only completed activities with a current goal link contribute to mission progress.</p>}
-    <InlineError message={error} />
-    <div className="flex flex-wrap justify-end gap-3"><ActionButton appearance="secondary" disabled={busy} onClick={onClose}>Cancel</ActionButton><ActionButton type="submit" busy={busy}>Save progress</ActionButton></div>
   </form></SprintModal>;
 }
 
 export function OutcomeEditor({ data, outcome, initialActivityId, initialDate, onSave, onClose }: { data: SprintData; outcome?: SprintOutcome; initialActivityId?: string; initialDate?: string; onSave: (input: OutcomeInput, activityId?: string) => Promise<void>; onClose: () => void }) {
+  const formId = useId();
   const [type, setType] = useState<OutcomeInput["type"]>(outcome?.type ?? "meeting");
   const [title, setTitle] = useState(outcome?.title ?? "");
   const [notes, setNotes] = useState(outcome?.notes ?? "");
@@ -133,21 +133,20 @@ export function OutcomeEditor({ data, outcome, initialActivityId, initialDate, o
     setBusy(true);
     try { await onSave(input.data, activityId || undefined); } catch (failure) { setError(errorMessage(failure)); } finally { setBusy(false); }
   }
-  return <SprintModal title={outcome ? "Edit outcome" : "Record outcome"} onClose={() => { if (!busy) onClose(); }}><form onSubmit={submit} className="space-y-6">
+  return <SprintModal title={outcome ? "Edit outcome" : "Record outcome"} busy={busy} onClose={onClose} footer={<DialogFormActions formId={formId} onClose={onClose} busy={busy} error={error} label="Save outcome" />}><form id={formId} onSubmit={submit} className="space-y-6">
     <p className="text-sm leading-6 text-muted-foreground">Capture a result from your Sprint. Outcomes are self-reported and visible to you and the organizers.</p>
     <div className="space-y-4">
       <Field label="What happened?" required minLength={3} maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Received feedback on the onboarding prototype" />
       <SelectField label="Outcome type" value={type} onChange={(event) => setType(event.target.value as typeof type)}>{outcomeTypes.map((value) => <option key={value} value={value}>{outcomeLabels[value]}</option>)}</SelectField>
       <div className="grid min-w-0 gap-4 @min-[400px]/sprint-dialog:grid-cols-2"><Field label="Outcome date" className="min-w-0" type="date" required value={date} onChange={(event) => setDate(event.target.value)} /><Field label="Count" type="number" required min={1} max={100} step={1} value={quantity} onChange={(event) => setQuantity(event.target.value)} /></div>
     </div>
-    <div className="space-y-4 border-t border-line pt-5"><SelectField label="Related activity (optional)" value={activityId} onChange={(event) => setActivityId(event.target.value)}><option value="">No linked activity</option>{data.entries.map((entry) => <option key={entry._id} value={entry._id}>{entry.title}</option>)}</SelectField><NotesField label="Details (optional)" value={notes} onChange={setNotes} /></div>
+    <div className="space-y-4 pt-5"><SelectField label="Related activity (optional)" value={activityId} onChange={(event) => setActivityId(event.target.value)}><option value="">No linked activity</option>{data.entries.map((entry) => <option key={entry._id} value={entry._id}>{entry.title}</option>)}</SelectField><NotesField label="Details (optional)" value={notes} onChange={setNotes} /></div>
     <p className="text-xs leading-5 text-muted-foreground">Recording an outcome doesn’t change attendance or mission progress.</p>
-    <InlineError message={error} /><div className="flex flex-wrap justify-end gap-3 border-t border-line pt-5"><ActionButton appearance="secondary" disabled={busy} onClick={onClose}>Cancel</ActionButton><ActionButton type="submit" busy={busy}>Save outcome</ActionButton></div>
   </form></SprintModal>;
 }
 
 export function RemoveSprintDialog({ title, description, action, onClose, onRemove }: { title: string; description: string; action: string; onClose: () => void; onRemove: () => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  return <SprintModal title={title} onClose={() => { if (!busy) onClose(); }}><div className="space-y-5"><p className="text-sm leading-6 text-muted-foreground">{description}</p><InlineError message={error} /><div className="flex flex-wrap justify-end gap-3"><ActionButton appearance="secondary" disabled={busy} onClick={onClose}>Keep it</ActionButton><ActionButton appearance="danger" busy={busy} onClick={async () => { setBusy(true); setError(null); try { await onRemove(); } catch (failure) { setError(errorMessage(failure)); } finally { setBusy(false); } }}>{action}</ActionButton></div></div></SprintModal>;
+  return <SprintModal title={title} size="compact" busy={busy} onClose={onClose} footer={<div className="space-y-3"><InlineError message={error} /><div className="flex flex-wrap justify-end gap-3"><ActionButton appearance="secondary" disabled={busy} onClick={onClose}>Keep it</ActionButton><ActionButton appearance="danger" busy={busy} onClick={async () => { setBusy(true); setError(null); try { await onRemove(); } catch (failure) { setError(errorMessage(failure)); } finally { setBusy(false); } }}>{action}</ActionButton></div></div>}><p className="text-sm leading-6 text-muted-foreground">{description}</p></SprintModal>;
 }

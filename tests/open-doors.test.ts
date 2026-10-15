@@ -63,12 +63,20 @@ describe("Stage 5 Open Doors", () => {
 
   it("shares only explicit public profile fields across cohorts, without email or private onboarding", async () => {
     const { alum, hustler, organizer } = await setup();
-    await alum.client.mutation(api.users.saveCommunity, { input: { bio: "Builder and mentor", building: "Developer tools", interests: "Design", offering: "Portfolio reviews" } });
+    await alum.client.mutation(api.users.saveCommunity, { input: { bio: "Builder and mentor", headline: "Helping founders ship", location: "Athens, Greece", building: "Developer tools", interests: "Design", offering: "Portfolio reviews", socialLinks: { website: "https://example.com", github: "https://github.com/mentor" } } });
     const people = await hustler.client.query(api.users.community, {}), person = people.find((item) => item._id === alum.profile._id)!;
     expect(person.community?.bio).toBe("Builder and mentor"); expect(person.cohorts[0].status).toBe("completed");
+    expect(person.community).toMatchObject({ headline: "Helping founders ship", location: "Athens, Greece", socialLinks: { github: "https://github.com/mentor" } });
     expect(person).not.toHaveProperty("email"); expect(person).not.toHaveProperty("authUserId"); expect(person).not.toHaveProperty("answers");
+    await expect(alum.client.mutation(api.users.saveCommunity, { input: { ...person.community!, socialLinks: { website: "javascript:alert(1)" } } })).rejects.toThrow("URL");
+    expect((await hustler.client.query(api.users.community, {})).find((item) => item._id === alum.profile._id)?.community?.socialLinks?.website).toBe("https://example.com");
+    await expect(hustler.client.mutation(api.users.saveCommunity, { input: { bio: "", building: "", interests: "", offering: "" } })).resolves.toBeNull();
+    expect((await hustler.client.query(api.users.community, {})).find((item) => item._id === alum.profile._id)?.community?.bio).toBe("Builder and mentor");
+    await alum.client.mutation(api.users.saveCommunity, { input: { bio: "", building: "", interests: "", offering: "", socialLinks: { website: "", github: "" } } });
+    expect((await hustler.client.query(api.users.community, {})).find((item) => item._id === alum.profile._id)?.community?.socialLinks?.website).toBe("");
     await organizer.mutation(api.users.setSuspended, { profileId: alum.profile._id, suspended: true });
     expect((await hustler.client.query(api.users.community, {})).some((item) => item._id === alum.profile._id)).toBe(false);
+    await expect(alum.client.mutation(api.users.saveCommunity, { input: { bio: "", building: "", interests: "", offering: "" } })).rejects.toThrow();
     expect(await hustler.client.query(api.openDoors.catalog, {})).toHaveLength(0);
   });
 

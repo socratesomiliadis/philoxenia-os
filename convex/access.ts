@@ -1,6 +1,7 @@
 import { ConvexError } from "convex/values";
 import { authComponent } from "./auth";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
+import { mcpIdentity } from "./mcpIdentity";
 
 export function isOrganizerEmail(email: string) {
   // No organizer access is granted unless explicitly configured on the backend.
@@ -9,6 +10,11 @@ export function isOrganizerEmail(email: string) {
 }
 
 export async function requireMember(ctx: QueryCtx | MutationCtx) {
+  const delegated = mcpIdentity(ctx);
+  if (delegated) {
+    const memberships = await ctx.db.query("memberships").withIndex("by_profile", (q) => q.eq("profileId", delegated._id)).collect();
+    return { profile: delegated, isOrganizer: true, memberships };
+  }
   const user = await authComponent.safeGetAuthUser(ctx);
   if (!user?.emailVerified) throw new ConvexError("Sign in with your verified email address.");
   const profile = await ctx.db.query("profiles").withIndex("by_auth_user", (q) => q.eq("authUserId", user._id)).unique();

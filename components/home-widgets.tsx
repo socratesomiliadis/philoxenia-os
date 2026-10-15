@@ -50,7 +50,7 @@ function HomeWidgets({ cohort, data, loading = false }: { cohort?: Cohort; data?
       <Panel className="p-5 @min-[640px]:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="flex items-center gap-2.5 text-base font-medium"><CalendarDays className="size-[18px] text-forest" aria-hidden />Up next</h2><span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Clock3 className="size-3.5" aria-hidden />San Francisco time</span></div>
         {pending ? <p role="status" className="py-10 text-sm text-muted-foreground">Loading your schedule…</p> : summary?.upcoming.length ? <ol className="mt-5 space-y-2">{summary.upcoming.map((entry) => <UpcomingActivity key={entry._id} entry={entry} now={now!} onOpen={() => setSelectedId(entry._id)} />)}</ol> : <div className="flex min-h-52 flex-col items-center justify-center py-8 text-center"><span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-sage text-forest"><CalendarDays className="size-5" aria-hidden /></span><h3 className="text-sm font-medium">Room for your next step.</h3><p className="mt-2 max-w-64 text-sm leading-6 text-muted-foreground">{data ? "Your next scheduled activities will appear here." : "Your cohort schedule will appear once your stay is confirmed."}</p></div>}
-        {summary?.flexible ? <p className="mt-4 border-t border-line pt-4 text-xs leading-5 text-muted-foreground">{summary.flexible} {summary.flexible === 1 ? "activity" : "activities"} still to find a day for.</p> : null}
+        {summary?.flexible ? <p className="mt-4 pt-4 text-xs leading-5 text-muted-foreground">{summary.flexible} {summary.flexible === 1 ? "activity" : "activities"} still to find a day for.</p> : null}
       </Panel>
       <div className="min-w-0 space-y-5 @min-[640px]:space-y-6">
         {data && !data.management ? <MomentumWidget summary={summary} pending={pending} /> : null}
@@ -64,7 +64,7 @@ function HomeWidgets({ cohort, data, loading = false }: { cohort?: Cohort; data?
 function StayWidget({ cohort, startDate, endDate, now }: { cohort?: Cohort; startDate?: string; endDate?: string; now: number | null }) {
   const { preview, viewer } = useWorkspace();
   const stay = startDate && endDate && now !== null ? homeStayProgress(startDate, endDate, now) : null;
-  return <Panel className="overflow-hidden border-forest/10 bg-sage/75 p-5 @min-[640px]:p-7">
+  return <Panel className="overflow-hidden bg-sage/75 p-5 @min-[640px]:p-7">
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0"><h2 className="flex items-center gap-2 text-sm font-medium text-forest"><MapPin className="size-4" aria-hidden />Your stay · San Francisco</h2>
         {startDate && endDate ? <p className="mt-3 text-2xl leading-8 font-medium tracking-tight tabular-nums text-forest @min-[640px]:text-3xl">{dateRangeLabel(startDate, endDate)}</p> : <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">{viewer?.isOrganizer ? "Create a cohort to set the stay dates." : "Your organizer will confirm your cohort and stay dates."}</p>}
@@ -72,7 +72,7 @@ function StayWidget({ cohort, startDate, endDate, now }: { cohort?: Cohort; star
       </div>
       <Badge tone={preview || cohort?.status === "upcoming" ? "gold" : cohort?.status === "active" ? "green" : "neutral"}>{preview ? "Sample cohort" : cohort ? cohort.status === "active" ? "In progress" : cohort.status === "upcoming" ? "Upcoming" : "Completed" : "Not assigned"}</Badge>
     </div>
-    {stay ? <div className="mt-6 border-t border-forest/10 pt-4"><div className="flex flex-wrap items-center justify-between gap-2 text-xs leading-5"><p className="font-medium tabular-nums text-forest">{stay.label}</p><p className="text-forest/65">{stay.days.length} days of possibility</p></div><div role="img" aria-label={stay.label} className="mt-3 flex gap-1.5">{stay.days.map((day, index) => <span key={day} className={`h-1.5 min-w-0 flex-1 rounded-full ${index === stay.dayIndex ? "bg-gold" : index < stay.elapsed ? "bg-forest" : "bg-forest/10"}`} />)}</div></div> : null}
+    {stay ? <div className="mt-6 pt-4"><div className="flex flex-wrap items-center justify-between gap-2 text-xs leading-5"><p className="font-medium tabular-nums text-forest">{stay.label}</p><p className="text-forest/65">{stay.days.length} days of possibility</p></div><div role="img" aria-label={stay.label} className="mt-3 flex gap-1.5">{stay.days.map((day, index) => <span key={day} className={`h-1.5 min-w-0 flex-1 rounded-full ${index === stay.dayIndex ? "bg-gold" : index < stay.elapsed ? "bg-forest" : "bg-forest/10"}`} />)}</div></div> : null}
   </Panel>;
 }
 

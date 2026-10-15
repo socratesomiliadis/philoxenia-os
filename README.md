@@ -12,6 +12,8 @@ Stage 7 adds participant help check-ins (including during onboarding), explained
 
 ## Run locally
 
+Organisers can also manage the workspace through agents using OAuth or personal access tokens. See [MCP setup and client instructions](MCP.md) for Claude, ChatGPT, and Codex. Connection management is in **Command Center → Settings → Connect your agent**.
+
 ```powershell
 pnpm install
 pnpm dev:backend
@@ -139,7 +141,9 @@ Stage 4 tests cover member/organizer authorization, private schedule/outcome iso
 
 In a **completed** cohort’s roster, open the participant’s Manage menu and choose **Graduate to alumni**. Graduation requires an active, unsuspended membership and leaves all memberships, onboarding, missions, schedules, and outcomes intact. Organizer privileges remain separate. Alumni can support later cohorts and participate in another cohort with a new membership.
 
-**Community → Edit your profile** publishes only the fields you explicitly enter: a bio, what you’re building, interests, and what you can offer. Search people and filter by role or cohort, including completed cohort history. Private onboarding answers are not copied into public profiles. Email addresses and private goals are excluded; suspended members disappear from the directory.
+**Community → Edit your profile** shares only the fields you explicitly enter with approved members: a short bio, headline, location, what you’re building, interests, and what you can offer. Add optional website, LinkedIn, GitHub, X, and Instagram links using full HTTP(S) URLs. Links are validated on the server and open in a new tab. Clear any field to remove it. Existing profiles work without the new optional fields.
+
+Search people by name, bio, headline, interests, skills, or location, and filter by role or cohort, including completed cohort history. **View profile** shows the full bio, shared details, and social links. Private onboarding answers are not copied into community profiles. Email addresses and private goals are excluded; suspended members disappear from the directory.
 
 Alumni use **Open Doors → Offer your support** for mentorship, portfolio reviews, introductions, or other support. Enter concrete support, availability and how to agree a time, and 1–50 concurrent places. Introduction offers require an actual connection and facilitation path. Publish directly as the provider or save a private draft. **Your offers → Edit offer** can change or unpublish a listing; existing requests preserve the offer as it was when requested. Organizer-curated external alumni listings in Opportunities retain their external request paths; Open Doors offers belong to the signed-in alumnus and use this in-app workflow.
 
