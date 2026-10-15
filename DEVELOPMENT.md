@@ -211,6 +211,20 @@ Unchanged imports update freshness without generating Sprint change warnings. Ch
 
 ## Checks
 
+### README screenshots
+
+The README screenshots are captured from the actual local application using fictional, browser-only fixtures. They include a consistent participant mission, schedule, opportunity catalog, community, alumni offers, and organizer follow-ups. No real accounts or backend records are created or changed. The capture script intercepts authentication and Convex traffic and rejects application writes.
+
+Reuse an existing development server (check port 3000 before starting one), then run:
+
+```powershell
+node scripts/capture-readme-screenshots.mjs
+```
+
+The script requires Node.js 24 and an installed Google Chrome, or set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` to an installed Chromium executable. Set `PLAYWRIGHT_BASE_URL` for a local server on another port. It saves six PNGs in `docs/screenshots/`, waits for fonts and images, checks the expected populated views and horizontal overflow, and fails on browser errors. Review the resulting images before updating the README.
+
+### Application checks
+
 ```powershell
 pnpm test
 pnpm typecheck

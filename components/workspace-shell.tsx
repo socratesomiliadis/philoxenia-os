@@ -1,18 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { CalendarDays, ChevronRight, Compass, DoorOpen, House, LayoutDashboard, LogOut, MapPin, Menu, PanelLeftClose, PanelLeftOpen, UsersRound, X, type LucideIcon } from "lucide-react";
+import { CalendarDays, ChevronRight, Compass, DoorOpen, House, LayoutDashboard, MapPin, Menu, PanelLeftClose, PanelLeftOpen, UsersRound, X, type LucideIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Sheet, SheetClose, SheetContent, SheetTitle } from "./ui/sheet";
 import { BrandMark, BrandWordmark } from "./brand";
-import { authClient } from "@/lib/auth-client";
 import { useWorkspace } from "./workspace-context";
 import { useModalNotifications } from "./notification-context";
 import { WorkspaceInbox } from "./workspace-inbox";
 import { HelpCheckin } from "./help-checkin";
+import { WorkspaceAccountMenu } from "./workspace-account-menu";
 
 const navigation = [
   { href: "/", label: "Home", icon: House },
@@ -58,12 +58,9 @@ function SidebarLink({ href, label, icon: Icon, active, compact, onNavigate }: {
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const { preview, viewer } = useWorkspace();
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   useModalNotifications(mobileOpen);
   const collapsed = useSyncExternalStore(subscribeSidebar, getSidebarCollapsed, () => false);
-  const [signingOut, setSigningOut] = useState(false);
-  const [signOutError, setSignOutError] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
   const active = pathname.startsWith("/preview") ? pathname.slice("/preview".length) || "/" : pathname;
@@ -80,25 +77,13 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     return () => desktop.removeEventListener("change", closeOnDesktop);
   }, []);
 
-  async function signOut() {
-    setSigningOut(true);
-    setSignOutError(null);
-    try {
-      const result = await authClient.signOut();
-      if (result.error) throw new Error(result.error.message);
-      router.replace("/sign-in");
-      router.refresh();
-    } catch { setSignOutError("Could not sign out. Try again."); setSigningOut(false); }
-  }
-
   const sidebar = (compact: boolean) => <>
     <Link href={preview ? "/preview" : "/"} aria-label="Philoxenia home" className="relative mb-8 flex min-h-10 items-center overflow-hidden px-2" onClick={() => setMobileOpen(false)}><BrandWordmark className={`h-auto w-44 shrink-0 transition-opacity duration-150 motion-reduce:transition-none ${compact ? "opacity-0" : "opacity-100"}`} /><BrandMark className={`absolute inset-y-0 start-1 my-auto h-auto w-10 transition-opacity duration-150 motion-reduce:transition-none ${compact ? "opacity-100" : "opacity-0"}`} /></Link>
     <nav aria-label="Main navigation" className="space-y-1">{navigation.map((item) => <SidebarLink key={item.href} {...item} href={preview ? `/preview${item.href === "/" ? "" : item.href}` : item.href} active={active === item.href} compact={compact} onNavigate={() => setMobileOpen(false)} />)}</nav>
     {preview || viewer?.isOrganizer ? <div className="mt-6 pt-5"><SidebarLink href={preview ? "/preview/organizer" : "/organizer"} label="Command Center" icon={LayoutDashboard} active={active === "/organizer"} compact={compact} onNavigate={() => setMobileOpen(false)} /></div> : null}
-    <div className="mt-auto pt-8">
-      <div aria-hidden={compact} className={`grid transition-[grid-template-rows,opacity,margin-bottom] duration-200 ease-ui motion-reduce:transition-none ${compact ? "mb-0 grid-rows-[0fr] opacity-0" : "mb-5 grid-rows-[1fr] opacity-100"}`}><div className="min-h-0 overflow-hidden"><div className="rounded-2xl bg-sage/65 p-4 whitespace-nowrap"><MapPin className="mb-3 size-[18px] text-gold-foreground" strokeWidth={1.7} aria-hidden /><p className="text-sm font-medium text-foreground">San Francisco</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Two weeks of possibility.</p></div></div></div>
-      <div className={`flex gap-3 px-1 py-2 ${compact ? "flex-col items-start" : "items-center"}`}><span aria-label={viewer?.name ?? "Workspace preview"} role="img" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sage text-sm font-medium text-forest">{viewer?.name?.charAt(0).toUpperCase() ?? "P"}</span>{!compact ? <div className="min-w-0 flex-1"><p className="text-sm font-medium wrap-anywhere text-foreground">{viewer?.name ?? "Workspace preview"}</p><p className="mt-0.5 text-xs text-muted-foreground">{preview ? "Local preview" : viewer?.isOrganizer ? "Organizer" : viewer?.profile?.isAlumni ? "Alumnus" : "Hustler"}</p></div> : null}{!preview ? <Tooltip disabled={!compact}><TooltipTrigger render={<Button size="icon" variant="ghost" aria-label="Sign out" disabled={signingOut} onClick={signOut} className="size-9 min-w-0 text-muted-foreground" />}><LogOut className="size-4" /></TooltipTrigger><TooltipContent side="right" sideOffset={12}>Sign out</TooltipContent></Tooltip> : null}</div>
-      {signOutError ? <p role="alert" className="mt-2 text-xs text-red-800">{signOutError}</p> : null}
+    <div className="mt-auto shrink-0 pt-8">
+      <div aria-hidden={compact} className={`mb-3 min-w-[216px] rounded-2xl bg-sage/65 p-4 whitespace-nowrap transition-opacity duration-100 ease-ui motion-reduce:transition-none ${compact ? "opacity-0" : "opacity-100"}`}><div className="flex items-center gap-2"><MapPin className="size-4 shrink-0 text-gold-foreground" strokeWidth={1.7} aria-hidden /><p className="text-sm font-medium text-foreground">San Francisco</p></div><p className="mt-2 text-xs leading-5 text-muted-foreground">Two weeks of possibility.</p></div>
+      <WorkspaceAccountMenu compact={compact} collapsed={collapsed} onToggleSidebar={toggleSidebar} />
     </div>
   </>;
 
