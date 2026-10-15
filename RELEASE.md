@@ -48,7 +48,7 @@ NEXT_PUBLIC variables are embedded at build time, so redeploy after changing the
 
 MCP clients should connect at https://philoxenia-os.socrates.fyi/api/mcp. Reconnect OAuth clients and issue new personal tokens if the previous canonical SITE_URL differed; credentials are bound to their original resource URL. Keep the canonical SITE_URL identical locally and remotely. Local browser authentication still works at localhost, but MCP advertises the hosted URL.
 
-Development /preview routes return 404 in a production build, including Vercel Preview. The app advertises noindex and disallows crawling; authorization remains enforced by Convex. A successful build or mocked rehearsal does not establish live Google sign-in, email delivery, or pilot readiness.
+Development /preview routes return 404 in a production build, including Vercel Preview. The app advertises noindex and disallows search-engine crawling, while allowing social link-preview crawlers to read generic page metadata and the shared image; authorization remains enforced by Convex. A successful build or mocked rehearsal does not establish live Google sign-in, email delivery, or pilot readiness.
 
 Official references: [Convex on Vercel](https://docs.convex.dev/production/hosting/vercel), [Better Auth dynamic base URL](https://better-auth.com/docs/guides/dynamic-base-url), [Convex + Better Auth Next.js proxy](https://labs.convex.dev/better-auth/framework-guides/next), [Vercel custom domains](https://vercel.com/docs/domains/working-with-domains/add-a-domain), [Google Web OAuth](https://developers.google.com/identity/protocols/oauth2/web-server).
 

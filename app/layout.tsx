@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Geist } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { createPageMetadata, siteName, siteTitle, siteUrl } from "@/lib/metadata";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -10,9 +11,13 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
+  ...createPageMetadata({ path: "/" }),
+  metadataBase: siteUrl,
+  applicationName: siteName,
+  creator: "Hustle Hours",
+  publisher: "Hustle Hours",
   robots: { index: false, follow: false },
-  title: { default: "Philoxenia OS — Your next chapter", template: "%s | Philoxenia OS" },
-  description: "Your personal workspace for two weeks of building, connecting, and opening doors in San Francisco. By Hustle Hours.",
+  title: { default: siteTitle, template: `%s | ${siteName}` },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
