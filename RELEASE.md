@@ -55,7 +55,7 @@ Official references: [Convex on Vercel](https://docs.convex.dev/production/hosti
 
 Complete these on production using controlled invited accounts before inviting the pilot. Record the date, deployment/commit, tester, and result; keep account details and private data out of the repository.
 
-1. Both organizers sign in with verified Google accounts and independently open Command Center. Check **Pilot operations** for two provisioned organizers, HTTPS origin, OAuth and email configuration. Credential flags alone do not establish readiness.
+1. Both organizers sign in with verified Google or email/password accounts and independently open Command Center. Check **Pilot operations** for two provisioned organizers, HTTPS origin, OAuth and email configuration. Credential flags alone do not establish readiness.
 2. Create a cohort and invite a Hustler. Verify the invitation email and sign-in link, resumable onboarding, editable mission confirmation, and fallback if AI is unavailable. Confirm uninvited and revoked accounts cannot enter.
 3. During onboarding, submit **I need help**. Verify organizers see the message and explained flag, save a private follow-up note, and resolve the check-in. Confirm another participant cannot read the help message or organizer note.
 4. Publish an opportunity, bookmark it, schedule it in Sprint, handle an overlap, and export an ICS. Add a shared activity. Mark an activity completed and record a separate self-reported outcome. Check the cohort summary and each CSV; distinguish planned, marked completed, and self-reported values.

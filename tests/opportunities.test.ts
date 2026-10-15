@@ -68,7 +68,7 @@ describe("Stage 3 opportunity catalog", () => {
   it("authorizes every read and write, blocks revoked/suspended accounts, and cleans bookmarks on account deletion", async () => {
     const { t, identity, organizer, hustler, profile, create, cohortId } = await setup();
     const id = await create({ ...event, status: "published" });
-    await expect(t.query(api.opportunities.list, {})).rejects.toThrow("verified Google");
+    await expect(t.query(api.opportunities.list, {})).rejects.toThrow("verified email");
     const outsider = await identity("outsider@example.com");
     const unverified = await identity("unverified@example.com", false);
     for (const client of [outsider, unverified]) {

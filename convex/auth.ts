@@ -8,11 +8,44 @@ import authConfig from "./auth.config";
 
 export const authComponent = createClient<DataModel>(components.betterAuth);
 
+async function sendAuthEmail(email: string, subject: string, text: string) {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  if (!key || !from) throw new Error("Authentication email is not configured.");
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from, to: [email], subject, text }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new Error("Authentication email could not be sent.");
+}
+
 export const createAuth = (ctx: GenericCtx<DataModel>) => betterAuth({
   baseURL: process.env.SITE_URL,
   secret: process.env.BETTER_AUTH_SECRET,
   trustedOrigins: process.env.SITE_URL ? [process.env.SITE_URL] : [],
   database: authComponent.adapter(ctx),
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: true,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendAuthEmail(user.email, "Reset your Philoxenia password",
+        `Set a new password for your Philoxenia account:\n\n${url}\n\nThis link expires in one hour. If you did not request this, you can ignore this email.`);
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendAuthEmail(user.email, "Verify your Philoxenia email",
+        `Verify your email address to continue to Philoxenia:\n\n${url}\n\nIf you did not create an account, you can ignore this email.`);
+    },
+  },
   socialProviders: process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -27,6 +60,8 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => betterAuth({
 export const readiness = query({
   args: {},
   handler: () => ({
+    emailAndPassword: Boolean(process.env.SITE_URL && process.env.BETTER_AUTH_SECRET &&
+      process.env.RESEND_API_KEY && process.env.EMAIL_FROM),
     google: Boolean(process.env.SITE_URL && process.env.BETTER_AUTH_SECRET &&
       process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
   }),

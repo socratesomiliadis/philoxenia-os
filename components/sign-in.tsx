@@ -8,12 +8,13 @@ import { backendConfigured } from "./providers";
 import { BrandMark } from "./brand";
 import { ActionButton, InlineError } from "./ui";
 import { EntryCard, EntryLayout } from "./entry-layout";
+import { EmailAuthForm } from "./email-auth-form";
 
 export function SignInScreen() {
   return backendConfigured ? (
     <ConnectedSignIn />
   ) : (
-    <SignInContent ready={false} />
+    <SignInContent googleReady={false} emailReady={false} />
   );
 }
 
@@ -21,7 +22,8 @@ function ConnectedSignIn() {
   const readiness = useQuery(api.auth.readiness);
   return (
     <SignInContent
-      ready={readiness?.google ?? false}
+      googleReady={readiness?.google ?? false}
+      emailReady={readiness?.emailAndPassword ?? false}
       checking={readiness === undefined}
     />
   );
@@ -51,16 +53,19 @@ function GoogleIcon() {
 }
 
 function SignInContent({
-  ready,
+  googleReady,
+  emailReady,
   checking = false,
 }: {
-  ready: boolean;
+  googleReady: boolean;
+  emailReady: boolean;
   checking?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("error")) {
+    if (new URLSearchParams(window.location.search).get("error") === "google") {
       // Do not reflect arbitrary provider errors or query strings into the UI.
       Promise.resolve().then(() =>
         setError("Google sign-in was not completed. Try again."),
@@ -102,13 +107,13 @@ function SignInContent({
           Welcome, <span className="text-forest">Hustler.</span>
         </h2>
         <p className="text-sm leading-6 text-muted-foreground">
-          Sign in with the Google account you were invited with.
+          Use the email address you were invited with.
         </p>
         <div className="mt-8">
           <ActionButton
             onClick={signIn}
             busy={busy}
-            disabled={!ready}
+            disabled={!googleReady || emailBusy}
             className="h-auto min-h-14 w-full gap-3 rounded-xl px-4 py-3 text-sm"
           >
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white">
@@ -117,7 +122,7 @@ function SignInContent({
             <span className="min-w-0 whitespace-normal leading-5">
               {checking
                 ? "Checking sign-in…"
-                : ready
+                : googleReady
                   ? "Continue with Google"
                   : "Google sign-in is not connected yet"}
             </span>
@@ -127,11 +132,8 @@ function SignInContent({
               <InlineError message={error} />
             </div>
           ) : null}
-          {!ready && !checking ? (
-            <p className="mt-5 text-sm leading-6 text-muted-foreground">
-              Your organizer will let you know when sign-in is ready.
-            </p>
-          ) : null}
+          <div className="mt-6 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-line" /><span>or continue with email</span><span className="h-px flex-1 bg-line" /></div>
+          <EmailAuthForm ready={emailReady} checking={checking} disabled={busy} onBusyChange={setEmailBusy} />
         </div>
       </EntryCard>
     </EntryLayout>

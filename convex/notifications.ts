@@ -62,7 +62,7 @@ export const deliver = internalAction({ args: { deliveryId: v.id("emailDeliverie
   }
   try {
     const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "Idempotency-Key": `philoxenia-${deliveryId}` },
-      body: JSON.stringify({ from, to: [item.email], subject: "Philoxenia OS · An update for you", text: `${item.message}\n\nOpen Philoxenia OS: ${new URL(item.path, site).href}\n\nSign in with your invited Google account.` }), signal: AbortSignal.timeout(10_000) });
+      body: JSON.stringify({ from, to: [item.email], subject: "Philoxenia OS · An update for you", text: `${item.message}\n\nOpen Philoxenia OS: ${new URL(item.path, site).href}\n\nSign in with your invited email address.` }), signal: AbortSignal.timeout(10_000) });
     if (!response.ok) throw new Error(`Email provider returned HTTP ${response.status}.`);
     const result = await response.json() as { id?: string };
     await ctx.runMutation(internal.notifications.deliveryResult, { deliveryId, status: "sent", providerId: result.id });

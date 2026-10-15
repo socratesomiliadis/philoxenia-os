@@ -28,7 +28,7 @@ export const ensureProfile = mutation({
   args: {},
   handler: async (ctx) => {
     const user = await authComponent.getAuthUser(ctx);
-    if (!user.emailVerified) throw new ConvexError("Use a verified Google account.");
+    if (!user.emailVerified) throw new ConvexError("Use a verified email address.");
     const email = user.email.trim().toLowerCase();
     const invitations = await ctx.db.query("invitations").withIndex("by_email", (q) => q.eq("email", email)).collect();
     const pending = invitations.filter((i) => i.status === "pending");

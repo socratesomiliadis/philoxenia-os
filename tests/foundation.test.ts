@@ -80,7 +80,7 @@ describe("Stage 1 foundation", () => {
     const hustler = await identity(t, "hustler@example.com");
     const profile = (await hustler.mutation(api.users.ensureProfile, {}))!;
     const args = { profileId: profile._id, confirmationEmail: profile.email };
-    await expect(t.mutation(api.users.deleteUser, args)).rejects.toThrow("verified Google");
+    await expect(t.mutation(api.users.deleteUser, args)).rejects.toThrow("verified email");
     await expect(hustler.mutation(api.users.deleteUser, args)).rejects.toThrow("Only organizers");
     await expect(organizer.mutation(api.users.deleteUser, { profileId: organizerProfile._id, confirmationEmail: organizerProfile.email })).rejects.toThrow("Organizer accounts cannot be deleted");
     vi.stubEnv("ORGANIZER_EMAILS", "organizer@example.com,second@example.com");
@@ -120,12 +120,12 @@ describe("Stage 1 foundation", () => {
 
   it("rejects unauthenticated, uninvited, unverified, and suspended accounts", async () => {
     const t = setup();
-    await expect(t.query(api.cohorts.list, {})).rejects.toThrow("verified Google account");
+    await expect(t.query(api.cohorts.list, {})).rejects.toThrow("verified email address");
     const outsider = await identity(t, "outsider@example.com");
     expect((await outsider.query(api.users.viewer, {}))?.allowed).toBe(false);
     await expect(outsider.mutation(api.users.ensureProfile, {})).rejects.toThrow("does not have access");
     const unverified = await identity(setup(), "organizer@example.com", false);
-    await expect(unverified.mutation(api.users.ensureProfile, {})).rejects.toThrow("verified Google account");
+    await expect(unverified.mutation(api.users.ensureProfile, {})).rejects.toThrow("verified email address");
     const organizer = await identity(t, "organizer@example.com");
     await organizer.mutation(api.users.ensureProfile, {});
     const cohortId = await organizer.mutation(api.cohorts.create, { name: "First chapter", description: "", startDate: "2026-11-02" });

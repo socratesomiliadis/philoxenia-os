@@ -8,7 +8,7 @@ export const invite = mutation({
   handler: async (ctx, args) => {
     const { profile } = await requireOrganizer(ctx);
     const email = args.email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) throw new ConvexError("Enter a valid Google account email.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) throw new ConvexError("Enter a valid email address.");
     if (args.name.trim().length > 100) throw new ConvexError("Keep names under 100 characters.");
     const cohort = await ctx.db.get(args.cohortId);
     if (!cohort || cohort.status === "completed") throw new ConvexError("Choose an upcoming or active cohort.");
@@ -17,7 +17,7 @@ export const invite = mutation({
     const data = { email, name: args.name.trim(), cohortId: args.cohortId, status: "pending" as const, invitedBy: profile._id };
     const invitationId = existing?._id ?? await ctx.db.insert("invitations", data);
     if (existing) await ctx.db.patch(existing._id, { ...data, acceptedBy: undefined });
-    await queueEmail(ctx, { email, invitationId, message: `You’re invited to ${cohort.name} in Philoxenia OS. Sign in with this Google account to join.`, path: "/sign-in" });
+    await queueEmail(ctx, { email, invitationId, message: `You’re invited to ${cohort.name} in Philoxenia OS. Sign in with this email address using Google or email and password to join.`, path: "/sign-in" });
     return invitationId;
   },
 });

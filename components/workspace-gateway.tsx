@@ -25,7 +25,7 @@ export function WorkspaceGateway({ children, allowPreview = true }: { children: 
 function ConnectedGateway({ children, allowPreview }: { children: ReactNode; allowPreview: boolean }) {
   const readiness = useQuery(api.auth.readiness);
   if (readiness === undefined) return <LoadingState />;
-  if (!readiness.google) return allowPreview && process.env.NODE_ENV === "development" ? <PreviewWorkspace>{children}</PreviewWorkspace> : <SignInScreen />;
+  if (!readiness.google && !readiness.emailAndPassword) return allowPreview && process.env.NODE_ENV === "development" ? <PreviewWorkspace>{children}</PreviewWorkspace> : <SignInScreen />;
   return <AuthenticatedGateway>{children}</AuthenticatedGateway>;
 }
 
@@ -75,5 +75,5 @@ function AccessDenied({ email }: { email: string }) {
       router.refresh();
     } catch { setError("Could not switch accounts. Please try again."); }
   }
-  return <main className="flex min-h-dvh items-center justify-center bg-canvas p-6"><section className="w-full max-w-lg rounded-[20px] border border-line bg-white p-7 shadow-panel sm:p-9"><ShieldX className="mb-6 size-8 text-forest" aria-hidden /><h1 className="text-3xl font-medium tracking-tight text-foreground">An invitation is needed.</h1><p className="mt-4 text-sm leading-7 wrap-anywhere text-muted-foreground">{email} doesn’t have an active invitation. Sign in with your invited Google account or ask your organizer to check your access.</p><div className="mt-6"><ActionButton onClick={switchAccount}>Use another account</ActionButton></div><div className="mt-4"><InlineError message={error} /></div></section></main>;
+  return <main className="flex min-h-dvh items-center justify-center bg-canvas p-6"><section className="w-full max-w-lg rounded-[20px] border border-line bg-white p-7 shadow-panel sm:p-9"><ShieldX className="mb-6 size-8 text-forest" aria-hidden /><h1 className="text-3xl font-medium tracking-tight text-foreground">An invitation is needed.</h1><p className="mt-4 text-sm leading-7 wrap-anywhere text-muted-foreground">{email} doesn’t have an active invitation. Sign in with your invited email address or ask your organizer to check your access.</p><div className="mt-6"><ActionButton onClick={switchAccount}>Use another account</ActionButton></div><div className="mt-4"><InlineError message={error} /></div></section></main>;
 }

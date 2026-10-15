@@ -10,7 +10,7 @@ export function isOrganizerEmail(email: string) {
 
 export async function requireMember(ctx: QueryCtx | MutationCtx) {
   const user = await authComponent.safeGetAuthUser(ctx);
-  if (!user?.emailVerified) throw new ConvexError("Sign in with your verified Google account.");
+  if (!user?.emailVerified) throw new ConvexError("Sign in with your verified email address.");
   const profile = await ctx.db.query("profiles").withIndex("by_auth_user", (q) => q.eq("authUserId", user._id)).unique();
   if (!profile || profile.suspended) throw new ConvexError("Your account does not have access.");
   const isOrganizer = isOrganizerEmail(user.email);

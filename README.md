@@ -4,7 +4,7 @@ The workspace for Philoxenia by Hustle Hours: two weeks of building, connecting,
 
 ## Stages 1–7
 
-Implemented: responsive participant/organizer navigation, Google authentication through Better Auth + Convex, organizer bootstrap, cohort management, approved-email invitations, cohort access controls, participant date overrides, account suspension, and a private community directory. Stage 2 adds resumable onboarding and three editable, measurable mission goals per Hustler and cohort. Stage 3 adds curated opportunity discovery, explained recommendations, private bookmarks, and organizer publishing. Stage 4 adds the 14-day Sprint, shared cohort activities, attendance/completion, mission progress, self-reported outcomes, and calendar exports. Stage 5 adds alumni graduation, shared community profiles, alumni-owned support offers, private requests and alternatives, Sprint meeting links, organizer coordination, in-app notifications, and optional transactional email. Stage 6 adds bounded scheduled event imports, YC CSV imports, separate source snapshots and organizer edits, source-change warnings, and organizer import monitoring.
+Implemented: responsive participant/organizer navigation, Google and verified email/password authentication through Better Auth + Convex, organizer bootstrap, cohort management, approved-email invitations, cohort access controls, participant date overrides, account suspension, and a private community directory. Stage 2 adds resumable onboarding and three editable, measurable mission goals per Hustler and cohort. Stage 3 adds curated opportunity discovery, explained recommendations, private bookmarks, and organizer publishing. Stage 4 adds the 14-day Sprint, shared cohort activities, attendance/completion, mission progress, self-reported outcomes, and calendar exports. Stage 5 adds alumni graduation, shared community profiles, alumni-owned support offers, private requests and alternatives, Sprint meeting links, organizer coordination, in-app notifications, and optional transactional email. Stage 6 adds bounded scheduled event imports, YC CSV imports, separate source snapshots and organizer edits, source-change warnings, and organizer import monitoring.
 
 Stack: Next.js 16.4, React 19, shadcn/ui (Base UI), Sonner, Tailwind v4, Convex, Better Auth, and pnpm. Better Auth is pinned to the version supported by the Convex integration.
 
@@ -28,7 +28,7 @@ The backend CLI creates `.env.local`. `NEXT_PUBLIC_CONVEX_SITE_URL` must be the 
 
 For this initial build, an anonymous local Convex deployment was initialized and the backend organizer allowlist was set to `s.omiliadis@gmail.com`. No cloud project or Google OAuth client was created. The local backend authentication secret has already been generated securely; it is not committed.
 
-Until Google OAuth is configured, development routes show a clearly marked sample workspace. Onboarding and opportunity previews allow local-only interactions; organizer writes are disabled. `/preview` is also available in development; it returns 404 in production. Preview never creates a session or authorizes backend access. Production shows the sign-in screen when configuration is incomplete.
+Until a sign-in method is configured, development routes show a clearly marked sample workspace. Onboarding and opportunity previews allow local-only interactions; organizer writes are disabled. `/preview` is also available in development; it returns 404 in production. Preview never creates a session or authorizes backend access. Production shows the sign-in screen when configuration is incomplete.
 
 ## Connect Convex and Google
 
@@ -47,20 +47,28 @@ Until Google OAuth is configured, development routes show a clearly marked sampl
 
    For the initialized local deployment, `SITE_URL`, `BETTER_AUTH_SECRET`, and `ORGANIZER_EMAILS` are already set. Add the two Google variables using `pnpm exec convex env set` in your own terminal. Keep credentials in environment settings, never source files.
 5. Run `pnpm dev:backend` and reuse/restart the frontend as needed after environment changes. Visit `/sign-in` and sign in as `s.omiliadis@gmail.com`.
-6. Open **Command Center → New cohort**, set its name and arrival date, then use **Invite Hustler** with the participant's Google email. Copy and share the sign-in link. The verified account joins the assigned cohort on first sign-in.
+6. Open **Command Center → New cohort**, set its name and arrival date, then use **Invite Hustler** with the participant's email address. Copy and share the sign-in link. The verified account joins the assigned cohort on first sign-in.
 
-Add a second organizer later by changing `ORGANIZER_EMAILS` to a comma-separated list on the backend. Organizer privileges are never chosen in the browser. An organizer must have a verified Google email and a provisioned profile.
+Add a second organizer later by changing `ORGANIZER_EMAILS` to a comma-separated list on the backend. Organizer privileges are never chosen in the browser. An organizer must have a verified email address and a provisioned profile.
 
 Invitations now queue transactional email when the Stage 5 email provider is configured. The shareable sign-in link remains available. Email failures never undo an invitation; check **Command Center → Coordinate Open Doors → Email delivery status**.
 
+### Email and password
+
+Email sign-in works independently of Google OAuth. Set `SITE_URL`, `BETTER_AUTH_SECRET`, `RESEND_API_KEY`, and `EMAIL_FROM` on the **Convex backend**. Use a Resend-verified sending domain for `EMAIL_FROM`; these are the same mail settings used for invitations. Without mail configuration, email sign-in controls stay disabled.
+
+At `/sign-in`, choose **Create an account**, use your invited email address, and choose an 8–128 character password. Follow the verification email to sign in and accept your invitation. Unverified accounts cannot enter the workspace or claim organizer access. Verification links can be resent, and signing in before verification sends a fresh link.
+
+**Forgot password?** sends a link that expires after one hour. It also lets an existing Google user set a password on the same account, preserving their profile and cohorts. Resetting a password revokes existing sessions. Creating an account never grants access without an invitation or an organizer email configured on the backend.
+
 ## Access and dates
 
-- Every protected Convex query and mutation checks authentication and active membership or organizer privileges. A Google account alone does not grant application access.
+- Every protected Convex query and mutation checks authentication and active membership or organizer privileges. An account alone does not grant application access.
 - Organizers can see cohorts, rosters, and invitation emails. Hustlers can see only their own cohorts and the community's public profile fields. The community query excludes email addresses.
 - Revoking an invitation blocks joining through it. Revoking a membership removes that cohort's access. Suspending a participant blocks all workspace access until restored. Restoring an invitation/membership does not silently remove a suspension.
 - Cohort dates are ISO calendar dates in `America/Los_Angeles`. The end date is arrival plus 13 calendar days (14 days inclusive), including across daylight-saving transitions. Optional participant arrival overrides use the same rule.
 - A completed cohort remains visible to its members. Organizers can use the participant’s Manage menu to **Graduate to alumni**; cohort membership and past work remain intact. Alumni retain community access independently of cohort membership; suspension still blocks all access.
-- To reset a test account, open **Command Center → participant’s Manage button → Delete user**. Type the displayed email and choose **Delete user permanently**. This deletes the Philoxenia profile, all cohort memberships and invitations, onboarding/mission data, generation limits, Better Auth user, linked sign-in records, and sessions. Cohorts and other users remain intact. Organizer accounts cannot be deleted. Use **Invite Hustler** with the same email afterward; the next Google sign-in creates a fresh profile and starts onboarding. This removes the app’s sign-in record, not the external Google account.
+- To reset a test account, open **Command Center → participant’s Manage button → Delete user**. Type the displayed email and choose **Delete user permanently**. This deletes the Philoxenia profile, all cohort memberships and invitations, onboarding/mission data, generation limits, Better Auth user, linked sign-in records, and sessions. Cohorts and other users remain intact. Organizer accounts cannot be deleted. Use **Invite Hustler** with the same email afterward; the next sign-in creates a fresh profile and starts onboarding. This removes the app’s sign-in record, not the external Google account.
 
 ## Personal missions
 

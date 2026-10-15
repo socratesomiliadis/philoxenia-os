@@ -46,7 +46,7 @@ describe("Stage 2 missions", () => {
     expect(await hustler.query(api.onboarding.get, { cohortId })).toMatchObject({ step: 3, answers: { offering: "" } });
     expect(await hustler.query(api.onboarding.required, {})).toBe(cohortId);
     await expect(hustler.action(api.missions.generate, { cohortId })).rejects.toThrow("Complete all four");
-    await expect(t.query(api.onboarding.get, { cohortId })).rejects.toThrow("verified Google");
+    await expect(t.query(api.onboarding.get, { cohortId })).rejects.toThrow("verified email");
     await expect(hustler.mutation(api.onboarding.saveDraft, { cohortId: otherCohort, answers, step: 0 })).rejects.toThrow("active membership");
     const other = await participant("other@example.com");
     await expect(other.client.query(api.onboarding.get, { cohortId, profileId: profile._id })).rejects.toThrow("only view your own");
