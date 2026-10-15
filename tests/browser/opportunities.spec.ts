@@ -95,7 +95,7 @@ test("sample discovery supports search, event filters, Bay Area, saved listings,
   await expect(dialog.getByRole("heading", { name: "Why this is here for you" })).toBeVisible();
   await expect(dialog.getByText("During your stay", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("link", { name: "View registration" })).toHaveCount(0);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
@@ -125,7 +125,7 @@ test("authenticated bookmarks show failures inside details, retry, survive refre
 
 test("organizers create drafts, publish and archive events, and add real curated directory drafts", async ({ page }) => {
   await catalogSession(page, true);
-  await page.goto("/organizer");
+  await page.goto("/organizer#opportunities");
   await page.getByRole("button", { name: "Add opportunity", exact: true }).click();
   let dialog = page.getByRole("dialog", { name: "Add opportunity", exact: true });
   await dialog.getByRole("textbox", { name: /^Title/ }).fill("Pilot builder workshop");
@@ -153,7 +153,8 @@ test("organizers create drafts, publish and archive events, and add real curated
   await chooseField(page, "Publication status", "Archived · organizers only", dialog);
   await dialog.getByRole("button", { name: "Archive opportunity", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await page.getByRole("button", { name: "Add curated starters", exact: true }).click();
+  await page.getByRole("button", { name: "Catalog actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Add curated starters", exact: true }).click();
   await expect(page.getByText("Added 4 directory drafts", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Edit LangChain", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -163,7 +164,7 @@ test("organizers create drafts, publish and archive events, and add real curated
 
 test("alumni publishing requires confirmation and distinguishes a support request from a public founder profile", async ({ page }) => {
   await catalogSession(page, true, [{ ...sampleOpportunities[3], isSample: false }]);
-  await page.goto("/organizer");
+  await page.goto("/organizer#opportunities");
   await page.getByRole("button", { name: "Add opportunity", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add opportunity", exact: true });
   await chooseField(page, "Type", "Alumni offer", editor);
@@ -180,7 +181,8 @@ test("alumni publishing requires confirmation and distinguishes a support reques
   await editor.getByRole("textbox", { name: /^Original source URL/ }).fill("https://example.com/alumnus");
   await editor.getByRole("button", { name: "Publish opportunity", exact: true }).click();
   const confirmation = editor.getByRole("checkbox", { name: /I confirmed this offer/ });
-  expect(await confirmation.evaluate((element: HTMLInputElement) => element.validity.valueMissing)).toBe(true);
+  await expect(confirmation).not.toBeChecked();
+  expect(await editor.locator("form").evaluate((form: HTMLFormElement) => form.checkValidity())).toBe(false);
   await expect(editor).toBeVisible();
   await confirmation.press("Space");
   await editor.getByRole("button", { name: "Publish opportunity", exact: true }).click();

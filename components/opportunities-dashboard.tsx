@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "@heroui/react";
+import { toast } from "sonner";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -80,6 +80,6 @@ function OpportunitiesView({ entries, context, cohorts, cohort, onSelectCohort, 
       {visible.length && !(invalidRange && eventFilters) ? <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,360px),1fr))] gap-4">{visible.map((entry) => <OpportunityCard key={entry._id} entry={entry} context={context} busy={busy} onBookmark={bookmark} onOpen={() => { setError(null); setSelected(entry._id); }} />)}</div> : <OpportunityEmptyState entries={entries} filters={filters} organizer={!!viewer?.isOrganizer} preview={preview} invalidRange={invalidRange && eventFilters} onReset={reset} />}
     </section>
     {selected ? <OpportunityDetails entry={entries.find((entry) => entry._id === selected)} context={context} busy={busy} error={error} onBookmark={bookmark} onClose={() => setSelected(null)} onAddToSprint={cohort && (preview || viewer?.participantCohortIds.includes(cohort._id)) ? () => { const entry = entries.find((item) => item._id === selected); if (entry) { setAdding(entry); } } : undefined} /> : null}
-    {adding && cohort ? <OpportunitySprintEditor opportunity={adding} cohortId={cohort._id} onClose={() => { setAdding(null); }} onAdded={() => { setAdding(null); toast.success("Added to your Sprint", { description: "Review your schedule and choose your next step.", actionProps: { children: "Open Sprint", onPress: () => router.push(preview ? "/preview/sprint" : "/sprint") } }); }} /> : null}
+    {adding && cohort ? <OpportunitySprintEditor opportunity={adding} cohortId={cohort._id} onClose={() => { setAdding(null); }} onAdded={() => { setAdding(null); toast.success("Added to your Sprint", { description: "Review your schedule and choose your next step.", action: { label: "Open Sprint", onClick: () => router.push(preview ? "/preview/sprint" : "/sprint") } }); }} /> : null}
   </div></div>;
 }

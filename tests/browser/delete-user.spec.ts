@@ -34,7 +34,7 @@ test("organizer deletion requires the target email, supports cancel and retry, a
       return { email: profile.email };
     },
   });
-  await page.goto("/organizer");
+  await page.goto("/organizer#participants");
   await page.getByRole("button", { name: "Manage Test Hustler", exact: true }).click();
   await page.getByRole("menuitem", { name: "Manage access and dates", exact: true }).click();
   await page.getByRole("button", { name: "Delete user", exact: true }).click();

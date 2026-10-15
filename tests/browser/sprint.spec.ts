@@ -201,7 +201,7 @@ test("authenticated opportunity additions persist, prevent duplicates, and suppo
 
 test("organizers manage shared challenges and can inspect a participant’s Sprint without editing private records", async ({ page }) => {
   await sprintSession(page, true);
-  await page.goto("/organizer");
+  await page.goto("/organizer#participants");
   await page.getByRole("button", { name: "Manage cohort Sprint", exact: true }).click();
   const management = page.getByRole("dialog", { name: "Manage cohort Sprint", exact: true });
   await management.getByRole("button", { name: "Add cohort activity", exact: true }).click();

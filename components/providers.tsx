@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { ConvexReactClient } from "convex/react";
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
-import { Toast, toast } from "@heroui/react";
+import { WorkspaceToaster } from "./workspace-toaster";
+import { TooltipProvider } from "./ui/tooltip";
 import { NotificationModalContext } from "./notification-context";
 import { authClient } from "@/lib/auth-client";
 
@@ -17,12 +18,7 @@ export function Providers({ children }: { children: ReactNode }) {
     return () => setModalCount((count) => Math.max(0, count - 1));
   }, []);
   const modalOpen = modalCount > 0;
-  useEffect(() => {
-    if (modalOpen) toast.pauseAll();
-    else toast.resumeAll();
-    return () => toast.resumeAll();
-  }, [modalOpen]);
-  const content = <NotificationModalContext value={registerModal}>{children}<Toast.Provider placement="bottom end" width="min(420px, calc(100vw - 32px))" maxVisibleToasts={3} aria-hidden={modalOpen || undefined} className={`${modalOpen ? "hidden!" : ""} [&_.toast]:rounded-2xl [&_.toast]:border-line [&_.toast]:bg-white [&_.toast__content]:min-w-0 [&_.toast__title]:text-sm [&_.toast__title]:wrap-anywhere [&_.toast__description]:text-xs [&_.toast__description]:wrap-anywhere`} /></NotificationModalContext>;
+  const content = <NotificationModalContext value={registerModal}><TooltipProvider>{children}</TooltipProvider><WorkspaceToaster paused={modalOpen} /></NotificationModalContext>;
   if (!client) return content;
   return <ConvexBetterAuthProvider client={client} authClient={authClient}>{content}</ConvexBetterAuthProvider>;
 }

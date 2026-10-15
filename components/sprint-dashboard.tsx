@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { toast } from "@heroui/react";
+import { toast } from "sonner";
 import { useMutation, useQuery } from "convex/react";
 import { CalendarDays, Clock3, TriangleAlert } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -34,7 +34,7 @@ export function SprintDashboard({ cohortId, profileId, management = false }: { c
   const [selectedId, setSelectedId] = useState("");
   const ordered = [...cohorts].sort((a, b) => a.startDate.localeCompare(b.startDate));
   const selected = cohorts.find((item) => item._id === (cohortId ?? selectedId)) ?? ordered.find((item) => item.status === "active") ?? ordered.find((item) => item.status === "upcoming") ?? ordered.at(-1);
-  if (!selected) return <Panel className="space-y-4 p-8"><CalendarDays className="size-7 text-forest" aria-hidden /><h1 className="text-2xl font-medium tracking-tight text-foreground">Your Sprint starts with a cohort</h1><p className="text-sm leading-6 text-muted">Ask your organizer to confirm your cohort and stay dates. Then you can plan your two weeks.</p></Panel>;
+  if (!selected) return <Panel className="space-y-4 p-8"><CalendarDays className="size-7 text-forest" aria-hidden /><h1 className="text-2xl font-medium tracking-tight text-foreground">Your Sprint starts with a cohort</h1><p className="text-sm leading-6 text-muted-foreground">Ask your organizer to confirm your cohort and stay dates. Then you can plan your two weeks.</p></Panel>;
   return <div className="space-y-5">{!cohortId && cohorts.length > 1 ? <div className="max-w-sm"><SelectField label="Sprint cohort" value={selected._id} onChange={(event) => setSelectedId(event.target.value)}>{cohorts.map((cohort) => <option key={cohort._id} value={cohort._id}>{cohort.name}</option>)}</SelectField></div> : null}{preview ? <PreviewSprint key={selected._id} /> : <ConnectedSprint key={`${selected._id}:${profileId ?? "own"}:${management}`} cohortId={selected._id} profileId={profileId} management={management} />}</div>;
 }
 
@@ -72,33 +72,33 @@ export function SprintView({ data, actions, preview = false }: { data: SprintDat
   const hasPersonalSprint = !data.management && (data.canPlan || data.readOnly || data.goals.length > 0 || data.outcomes.length > 0 || data.entries.some((entry) => entry.scope === "personal"));
   function open(entry: SprintEntry) { setDetailId(entry._id); setError(null); }
   function exportEntries(items: SprintEntry[]) {
-    try { downloadSprint(items, `${preview ? "Sample · " : ""}${data.cohortName} · Sprint`); toast.success("Calendar exported", { description: "Timed activities are events; flexible tasks are to-dos. This file is a snapshot of your Sprint.", timeout: 6000 }); }
+    try { downloadSprint(items, `${preview ? "Sample · " : ""}${data.cohortName} · Sprint`); toast.success("Calendar exported", { description: "Timed activities are events; flexible tasks are to-dos. This file is a snapshot of your Sprint.", duration: 6000 }); }
     catch { setError("Unable to export your calendar. Try again in this browser."); }
   }
   function selectDay(date: string) { setDay(date); setView("day"); }
   const renderCards = (items: SprintEntry[]) => <div className="space-y-3">{items.map((entry) => <SprintEntryCard key={entry._id} entry={entry} onOpen={() => open(entry)} />)}</div>;
   return <div className="@container"><div className="space-y-6 @min-[640px]:space-y-8">
     <SprintHeader data={data} sharedOnly={!data.management && !hasPersonalSprint} onAdd={() => setEditor({ day: selectedDay })} onExport={() => exportEntries(data.entries)} />
-    {data.readOnly || (!data.canPlan && hasPersonalSprint) ? <p className="rounded-xl bg-soft px-4 py-3 text-xs leading-5 text-muted">{data.readOnly ? "Organizer view · This participant’s Sprint is read-only." : "Personal planning is unavailable for this cohort. Your saved activities and outcomes are still shown."}</p> : !data.canPlan && !data.management ? <div className="rounded-2xl bg-sage/60 px-5 py-4"><p className="text-sm font-medium text-forest">You’re viewing the cohort schedule</p><p className="mt-1 max-w-2xl text-sm leading-6 text-muted">Manage shared activities in the Command Center. Join the cohort as a participant to keep a personal Sprint.</p></div> : null}
+    {data.readOnly || (!data.canPlan && hasPersonalSprint) ? <p className="rounded-xl bg-soft px-4 py-3 text-xs leading-5 text-muted-foreground">{data.readOnly ? "Organizer view · This participant’s Sprint is read-only." : "Personal planning is unavailable for this cohort. Your saved activities and outcomes are still shown."}</p> : !data.canPlan && !data.management ? <div className="rounded-2xl bg-sage/60 px-5 py-4"><p className="text-sm font-medium text-forest">You’re viewing the cohort schedule</p><p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Manage shared activities in the Command Center. Join the cohort as a participant to keep a personal Sprint.</p></div> : null}
     <InlineError message={detailId ? null : error} />
     {hasPersonalSprint ? <SprintSummary entries={entries} outcomes={data.outcomes} /> : null}
-    {conflicts.length ? <div className="flex items-start gap-3 rounded-xl bg-warm p-4 text-sm leading-6 text-foreground"><TriangleAlert className="mt-1 size-4 shrink-0" aria-hidden /><div><p className="font-medium">Some activities overlap</p><p className="text-muted">Open an activity to review its time: {conflicts.map((entry) => entry.title).join(", ")}</p></div></div> : null}
+    {conflicts.length ? <div className="flex items-start gap-3 rounded-xl bg-warm p-4 text-sm leading-6 text-foreground"><TriangleAlert className="mt-1 size-4 shrink-0" aria-hidden /><div><p className="font-medium">Some activities overlap</p><p className="text-muted-foreground">Open an activity to review its time: {conflicts.map((entry) => entry.title).join(", ")}</p></div></div> : null}
     <SprintDayPicker days={days} entries={within} selectedDay={selectedDay} view={view} onDay={selectDay} onView={setView} />
     <div className={`grid items-start gap-8 border-t border-line pt-7 ${hasPersonalSprint ? "@min-[880px]:grid-cols-[minmax(0,1fr)_300px]" : ""}`}>
       <div className="min-w-0 space-y-8">
         {(view === "day" ? [selectedDay] : days).map((date) => <SprintDaySchedule key={date} date={date} items={within.filter((entry) => activityOnDay(entry, date))} dayIndex={days.indexOf(date)} days={days} data={data} preview={preview} fullAgenda={view === "agenda"} onDay={selectDay} onAdd={() => setEditor({ day: date })} onOpen={open} />)}
         {unscheduled.length ? <section aria-label="Unscheduled activities" className="space-y-4 rounded-2xl bg-soft/65 p-4 @min-[640px]:p-5">
-          <div className="flex items-center gap-2.5"><Clock3 className="size-4 text-muted" aria-hidden /><h2 className="text-base font-medium tracking-tight text-foreground">Unscheduled</h2><span className="ms-auto text-xs tabular-nums text-muted">{unscheduled.length}</span></div>
-          <p className="text-xs leading-5 text-muted">Ideas and tasks to fit in when the time is right.</p>
+          <div className="flex items-center gap-2.5"><Clock3 className="size-4 text-muted-foreground" aria-hidden /><h2 className="text-base font-medium tracking-tight text-foreground">Unscheduled</h2><span className="ms-auto text-xs tabular-nums text-muted-foreground">{unscheduled.length}</span></div>
+          <p className="text-xs leading-5 text-muted-foreground">Ideas and tasks to fit in when the time is right.</p>
           {renderCards(unscheduled)}
         </section> : null}
-        {outside.length ? <section aria-label="Activities outside your stay" className="space-y-4"><h2 className="text-lg font-medium tracking-tight text-foreground">Outside your current stay</h2><p className="text-sm leading-6 text-muted">These activities fall outside your stay dates. Review their dates before making plans.</p>{renderCards(outside)}</section> : null}
-        {cancelled.length ? <details className="rounded-2xl border border-line p-5"><summary className="cursor-pointer text-sm font-medium text-muted">Cancelled cohort activities ({cancelled.length})</summary><div className="mt-4">{renderCards(cancelled)}</div></details> : null}
+        {outside.length ? <section aria-label="Activities outside your stay" className="space-y-4"><h2 className="text-lg font-medium tracking-tight text-foreground">Outside your current stay</h2><p className="text-sm leading-6 text-muted-foreground">These activities fall outside your stay dates. Review their dates before making plans.</p>{renderCards(outside)}</section> : null}
+        {cancelled.length ? <details className="rounded-2xl border border-line p-5"><summary className="cursor-pointer text-sm font-medium text-muted-foreground">Cancelled cohort activities ({cancelled.length})</summary><div className="mt-4">{renderCards(cancelled)}</div></details> : null}
       </div>
       {hasPersonalSprint ? <SprintMissionPanel data={data} preview={preview} /> : null}
     </div>
     {hasPersonalSprint ? <SprintOutcomes data={data} onRecord={() => setOutcomeEditor({})} onEdit={(outcome) => setOutcomeEditor({ outcome })} onRemove={(outcome) => setRemoving({ outcome })} onActivity={(id) => { setDetailId(id); setError(null); }} /> : null}
-    {preview ? <button onClick={() => { resetSampleSprint(); setDay(data.startDate); toast.success("Sample Sprint reset."); }} className="min-h-10 rounded-sm text-sm text-muted underline-offset-4 hover:underline">Reset sample Sprint</button> : null}
+    {preview ? <button onClick={() => { resetSampleSprint(); setDay(data.startDate); toast.success("Sample Sprint reset."); }} className="min-h-10 rounded-sm text-sm text-muted-foreground underline-offset-4 hover:underline">Reset sample Sprint</button> : null}
     {detailId ? <ActivityDetails entry={selected} data={data} error={error} busy={busy} onClose={() => setDetailId(null)} onEdit={() => { if (selected) setEditor({ entry: selected }); }} onProgress={() => { if (selected) setProgressEntry(selected); }} onOutcome={() => { if (selected) setOutcomeEditor({ activity: selected }); }} onRemove={() => { if (selected) setRemoving({ entry: selected }); }} onRestore={async () => { if (!selected) return; setBusy(true); setError(null); try { await actions.restoreActivity(selected); } catch (failure) { setError(errorMessage(failure)); } finally { setBusy(false); } }} onExport={() => { if (selected) exportEntries([selected]); }} /> : null}
     {editor ? <ActivityEditor data={data} entry={editor.entry} initialDay={editor.day} onClose={() => setEditor(null)} onSave={async (input, goalLink, allowOverlap) => { await actions.saveActivity({ input, entry: editor.entry, goalLink, allowOverlap }); toast.success(editor.entry ? "Activity updated." : "Activity added to your Sprint."); setEditor(null); }} /> : null}
     {progressEntry ? <ProgressEditor data={data} entry={progressEntry} onClose={() => setProgressEntry(null)} onSave={async (input) => { await actions.setProgress(progressEntry, input); toast.success("Progress saved."); setProgressEntry(null); }} /> : null}

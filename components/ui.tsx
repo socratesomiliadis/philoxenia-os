@@ -1,29 +1,71 @@
 "use client";
 
-import { Alert, Button, Input, Label, ListBox, Select, TextField } from "@heroui/react";
-import { LoaderCircle, type LucideIcon } from "lucide-react";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Field as FormField, FieldDescription, FieldLabel } from "./ui/field";
+import { Textarea } from "./ui/textarea";
+import { Checkbox } from "./ui/checkbox";
+import { Label } from "./ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { CircleAlert, LoaderCircle, Search, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { useState, type ReactNode, type ComponentProps } from "react";
+import { useId, useState, type ReactNode, type ComponentProps } from "react";
+import { cn } from "@/lib/utils";
 import { useModalNotifications } from "./notification-context";
 
-export function ActionButton({ children, busy, appearance = "primary", className = "", ...props }: Omit<ComponentProps<typeof Button>, "children"> & { busy?: boolean; appearance?: "primary" | "secondary" | "danger"; children: ReactNode }) {
-  const colors = { primary: "bg-forest text-accent-foreground hover:bg-forest/90", secondary: "border border-line bg-white text-foreground hover:bg-soft", danger: "bg-red-700 text-white hover:bg-red-800" }[appearance];
-  return <Button {...props} aria-busy={busy || undefined} isDisabled={props.isDisabled || busy} className={`min-h-11 rounded-xl px-4 text-sm font-medium shadow-control transition-[background-color,transform] duration-150 ease-ui active:scale-[0.98] disabled:shadow-none ${colors} ${className}`}>
+export function ActionButton({ children, busy, appearance = "primary", className = "", ...props }: Omit<ComponentProps<typeof Button>, "children"> & { busy?: boolean; appearance?: "primary" | "secondary" | "danger"; children?: ReactNode }) {
+  const colors = { primary: "bg-forest text-primary-foreground hover:bg-forest/90", secondary: "border border-line bg-white text-foreground hover:bg-soft", danger: "bg-red-700 text-white hover:bg-red-800" }[appearance];
+  return <Button {...props} aria-busy={busy || undefined} disabled={props.disabled || busy} className={cn("min-h-11 rounded-xl px-4 text-sm font-medium shadow-control transition-[background-color,transform] duration-150 ease-ui active:scale-[0.98] disabled:shadow-none", colors, className)}>
     {busy ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : null}{children}
   </Button>;
 }
 
-export function Field({ label, className = "", ...props }: ComponentProps<typeof Input> & { label: string }) {
-  return <TextField className="min-w-0 w-full gap-2" isRequired={props.required}>
-    <Label className="text-sm font-medium text-foreground">{label}</Label>
-    <Input {...props} className={`min-h-11 w-full min-w-0 rounded-xl border border-line bg-white px-3 text-sm shadow-control transition-colors focus:border-forest focus:ring-2 focus:ring-forest/10 ${className}`} />
-  </TextField>;
+export function Field({ label, className = "", id, ...props }: ComponentProps<typeof Input> & { label: string }) {
+  const generatedId = useId();
+  const fieldId = id ?? generatedId;
+  return <FormField className="min-w-0 w-full gap-2">
+    <FieldLabel htmlFor={fieldId} className="text-sm font-medium text-foreground">{label}</FieldLabel>
+    {props.type === "search" ? <SearchField {...props} id={fieldId} className={className} /> : <Input {...props} id={fieldId} className={cn("min-h-11 w-full min-w-0 rounded-xl border border-line bg-white px-3 text-sm shadow-control transition-colors focus:border-forest focus:ring-2 focus:ring-forest/10", className)} />}
+  </FormField>;
+}
+
+export function SearchField({ containerClassName, className, children, ...props }: ComponentProps<typeof Input> & { containerClassName?: string; children?: ReactNode }) {
+  return <div data-slot="search-field" className={cn("flex min-w-0 items-center gap-2.5 rounded-xl border border-line bg-white px-3.5 shadow-control transition-[border-color,box-shadow] duration-150 focus-within:border-forest/40 focus-within:ring-2 focus-within:ring-forest/10", containerClassName)}>
+    <Search className="size-[18px] shrink-0 text-muted-foreground" aria-hidden />
+    <Input {...props} type="search" className={cn("h-11 min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 py-0 text-sm shadow-none outline-none! placeholder:text-muted-foreground/70 focus-visible:border-transparent focus-visible:ring-0 dark:bg-transparent [&::-webkit-search-cancel-button]:appearance-none", className)} />
+    {children}
+  </div>;
+}
+
+export function TextareaField({ label, description, className, labelClassName, id, ...props }: ComponentProps<typeof Textarea> & { label: string; description?: ReactNode; labelClassName?: string }) {
+  const generatedId = useId();
+  const fieldId = id ?? generatedId;
+  const descriptionId = `${fieldId}-description`;
+  return <FormField className="min-w-0 gap-2">
+    <FieldLabel htmlFor={fieldId} className={cn("text-sm font-medium text-foreground", labelClassName)}>{label}</FieldLabel>
+    <Textarea {...props} id={fieldId} aria-describedby={description ? descriptionId : props["aria-describedby"]} className={cn("w-full min-w-0 resize-y rounded-xl border border-line bg-white p-3 text-sm leading-7 focus:border-forest focus:ring-2 focus:ring-forest/10", className)} />
+    {description ? <FieldDescription id={descriptionId} className="text-xs leading-5 text-muted-foreground">{description}</FieldDescription> : null}
+  </FormField>;
+}
+
+export function CheckboxField({ children, description, className, contentClassName, controlClassName, id, ...props }: ComponentProps<typeof Checkbox> & { children: ReactNode; description?: ReactNode; contentClassName?: string; controlClassName?: string }) {
+  const generatedId = useId();
+  const fieldId = id ?? generatedId;
+  const descriptionId = `${fieldId}-description`;
+  return <div className={cn("flex min-w-0 flex-col gap-1", props.disabled && "opacity-50", className)}>
+    <Label htmlFor={fieldId} className={cn("flex min-w-0 cursor-pointer items-center gap-2.5 text-sm font-normal", contentClassName)}>
+      <Checkbox {...props} id={fieldId} aria-describedby={description ? descriptionId : props["aria-describedby"]} className={cn("size-4 shrink-0 rounded-md bg-soft shadow-control", controlClassName)} />
+      <span className="min-w-0 text-foreground wrap-anywhere">{children}</span>
+    </Label>
+    {description ? <FieldDescription id={descriptionId} className="mt-2 ps-7 text-xs leading-5 text-muted-foreground">{description}</FieldDescription> : null}
+  </div>;
 }
 
 export function PageHeading({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return <div className="flex flex-wrap items-start justify-between gap-5">
     <div className="min-w-0"><h1 className="text-3xl leading-tight font-medium tracking-[-0.045em] text-foreground wrap-anywhere sm:text-[38px]">{title}</h1>
-      {description ? <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{description}</p> : null}</div>
+      {description ? <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p> : null}</div>
     {action}
   </div>;
 }
@@ -33,12 +75,12 @@ export function Panel({ children, className = "" }: { children: ReactNode; class
 }
 
 export function IconTile({ icon: Icon, tone = "neutral", className = "" }: { icon: LucideIcon; tone?: "neutral" | "green" | "warm"; className?: string }) {
-  const colors = { neutral: "bg-soft text-muted", green: "bg-soft text-forest", warm: "bg-warm text-[#806832]" };
+  const colors = { neutral: "bg-soft text-muted-foreground", green: "bg-soft text-forest", warm: "bg-warm text-[#806832]" };
   return <span className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl ${colors[tone]} ${className}`}><Icon className="size-[19px]" strokeWidth={1.7} aria-hidden /></span>;
 }
 
 export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "green" | "gold" }) {
-  const colors = { neutral: "bg-soft text-muted", green: "bg-sage text-forest", gold: "bg-warm text-[#806832]" };
+  const colors = { neutral: "bg-soft text-muted-foreground", green: "bg-sage text-forest", gold: "bg-warm text-[#806832]" };
   return <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs leading-5 ${colors[tone]}`}>{children}</span>;
 }
 
@@ -47,24 +89,27 @@ export function TextLink({ href, children }: { href: string; children: ReactNode
 }
 
 export function InlineError({ message }: { message: string | null }) {
-  return message ? <Alert status="danger" role="alert" className="rounded-xl bg-red-50 p-3.5"><Alert.Indicator /><Alert.Content className="min-w-0"><Alert.Description className="text-sm leading-6 text-red-800 wrap-anywhere">{message}</Alert.Description></Alert.Content></Alert> : null;
+  return message ? <Alert variant="destructive" role="alert" className="rounded-xl border-0 bg-red-50 p-3.5"><CircleAlert aria-hidden className="size-4 text-red-700" /><AlertDescription className="text-sm leading-6 text-red-800 wrap-anywhere">{message}</AlertDescription></Alert> : null;
 }
 
 export function ChoiceField({ label, value, options, onChange, disabled = false, compact = false }: {
   label: string; value: string; options: readonly { value: string; label: string; disabled?: boolean }[]; onChange: (value: string) => void; disabled?: boolean; compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const id = useId();
   useModalNotifications(open);
   const key = (value: string) => value || "__empty__";
-  return <Select isOpen={open} onOpenChange={setOpen} aria-label={compact ? label : undefined} value={key(value)} onChange={(value) => onChange(value === "__empty__" ? "" : String(value ?? ""))} isDisabled={disabled} className="min-w-0 w-full gap-2">
-    {!compact ? <Label className="text-xs font-medium text-muted">{label}</Label> : null}
-    <Select.Trigger className={`w-full min-w-0 rounded-xl border border-line bg-white px-3 text-start text-sm text-foreground shadow-control ${compact ? "min-h-10" : "min-h-11"}`}><Select.Value className="min-w-0 flex-1 truncate" /><Select.Indicator /></Select.Trigger>
-    <Select.Popover className="max-w-[calc(100vw-32px)] rounded-xl border border-line bg-white p-1 shadow-lg"><ListBox aria-label={label} disabledKeys={options.filter((option) => option.disabled).map((option) => key(option.value))} className="max-h-64 overflow-y-auto">{options.map((option) => <ListBox.Item key={key(option.value)} id={key(option.value)} textValue={option.label} className="min-h-10 rounded-lg px-3 py-2 text-sm text-foreground data-[selected=true]:bg-sage data-[selected=true]:text-forest"><span className="min-w-0 flex-1 wrap-anywhere">{option.label}</span><ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
-  </Select>;
+  return <FormField className="min-w-0 w-full gap-2">
+    {!compact ? <FieldLabel htmlFor={id} className="text-xs font-medium text-muted-foreground">{label}</FieldLabel> : null}
+    <Select open={open} onOpenChange={setOpen} value={key(value)} items={options.map((option) => ({ value: key(option.value), label: option.label }))} onValueChange={(value) => onChange(value === "__empty__" ? "" : String(value ?? ""))} disabled={disabled}>
+      <SelectTrigger id={id} aria-label={compact ? label : undefined} className={`w-full min-w-0 rounded-xl border border-line bg-white px-3 text-start text-sm text-foreground shadow-control ${compact ? "min-h-10" : "min-h-11"}`}><SelectValue className="min-w-0 flex-1 truncate" /></SelectTrigger>
+      <SelectContent align="start" alignItemWithTrigger={false} aria-label={label} className="scrollbar-thin max-h-64 max-w-[calc(100vw-32px)] rounded-xl border border-line bg-white p-1 shadow-lg ring-0">{options.map((option) => <SelectItem key={key(option.value)} value={key(option.value)} disabled={option.disabled} className="min-h-10 rounded-lg px-3 py-2 pe-8 text-sm text-foreground data-selected:bg-sage data-selected:text-forest"><span className="min-w-0 flex-1 whitespace-normal wrap-anywhere">{option.label}</span></SelectItem>)}</SelectContent>
+    </Select>
+  </FormField>;
 }
 
 export function LoadingState({ label = "Opening your workspace…" }: { label?: string }) {
-  return <div role="status" className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-muted"><LoaderCircle className="size-6 animate-spin text-forest" aria-hidden /><p className="text-sm">{label}</p></div>;
+  return <div role="status" className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-muted-foreground"><LoaderCircle className="size-6 animate-spin text-forest" aria-hidden /><p className="text-sm">{label}</p></div>;
 }
 
 export function errorMessage(error: unknown) {

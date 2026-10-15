@@ -18,6 +18,7 @@ test("preview navigation works on desktop and mobile without granting backend ac
   expect((await panel.locator("header").boundingBox())!.y).toBe(headerTop);
   await page.getByRole("button", { name: "Collapse sidebar", exact: true }).click();
   await expect(page.getByRole("button", { name: "Expand sidebar", exact: true })).toHaveAttribute("aria-expanded", "false");
+  await page.keyboard.press("Tab");
   await page.getByRole("link", { name: "Opportunities", exact: true }).focus();
   await expect(page.getByRole("tooltip", { name: "Opportunities", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Command Center", exact: true }).click();

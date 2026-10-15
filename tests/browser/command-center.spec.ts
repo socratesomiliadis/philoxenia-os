@@ -7,6 +7,54 @@ const profile = { _id: "hustler-profile", _creationTime: 1, authUserId: "hustler
 const organizer = { ...profile, _id: "organizer-profile", name: "Organizer", email: "organizer@example.com", authUserId: "organizer-user" };
 const cohort = { _id: "test-cohort", _creationTime: 1, name: "First chapter", description: "", startDate: "2026-11-02", endDate: "2026-11-15", timezone: "America/Los_Angeles", status: "active", createdBy: organizer._id };
 
+test("organizer sections support direct links, retained filters, browser history, and keyboard navigation", async ({ page }) => {
+  const queries = new Set<string>();
+  await mockSession(page, {
+    user: { id: organizer.authUserId, name: organizer.name, email: organizer.email },
+    query(path) {
+      queries.add(path);
+      switch (path) {
+        case "auth:readiness": return { google: true };
+        case "users:viewer": return { name: organizer.name, email: organizer.email, profile: organizer, isOrganizer: true, participantCohortIds: [], allowed: true, needsProvisioning: false };
+        case "cohorts:list": return [cohort];
+        case "cohorts:roster": return { participants: [], invitations: [] };
+        case "onboarding:required": return null;
+        case "commandCenter:cohortSummary": return emptyCohortReport(cohort);
+        case "opportunities:list": return { entries: [], context: { interests: [], categories: [] } };
+        case "ingestion:status": return { sources: [], runs: [], intervalDays: 1, month: "2026-11" };
+        case "notifications:inbox": case "notifications:deliveries": case "openDoors:catalog": case "openDoors:ownOffers": case "openDoors:requests": return [];
+        case "commandCenter:operations": return { oauthConfigured: true, emailConfigured: false, httpsSite: false, organizerCount: 2, failedEmails: 0, disabledEmails: 0, failedImports: 0, stuckImports: 0 };
+        default: throw new Error(`Unexpected query: ${path}`);
+      }
+    },
+    mutate(path) { throw new Error(`Unexpected mutation: ${path}`); },
+  });
+  await page.goto("/organizer");
+  await expect(page.getByRole("heading", { name: "Follow-ups", exact: true })).toBeVisible();
+  expect(queries.has("ingestion:status")).toBe(false);
+  expect(queries.has("openDoors:requests")).toBe(false);
+  await page.getByRole("tab", { name: "Opportunities", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Search listings", exact: true }).fill("prototype");
+  await page.getByRole("tab", { name: "Imports", exact: true }).click();
+  await expect(page).toHaveURL(/#imports$/);
+  await expect(page.getByRole("heading", { name: "Import sources", exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("searchbox", { name: "Search listings", exact: true })).toHaveValue("prototype");
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "System status", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("tab", { name: "Settings", exact: true })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Cohorts", exact: true }).click();
+  await page.getByRole("tab", { name: /^Participants/ }).click();
+  await expect(page.getByRole("button", { name: "Invite Hustler", exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 900 });
+  const tabs = page.getByRole("tablist", { name: "Command Center sections", exact: true });
+  await tabs.getByRole("tab", { name: "Cohorts", exact: true }).focus();
+  await page.keyboard.press("ArrowRight"); await page.keyboard.press("Enter");
+  await expect(tabs.getByRole("tab", { name: "Opportunities", exact: true })).toHaveAttribute("aria-selected", "true");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test("participant can request help while onboarding, retry a failed save and resolve it at 320px", async ({ page }) => {
   let checkin: Record<string, unknown> | null = null, failOnce = true;
   await mockSession(page, {
@@ -101,14 +149,14 @@ test("organizer reviews explained flags, handles stale notes, resolves help and 
   await trigger.click(); await dialog.getByLabel("Private organizer follow-up note").fill("PRIVATE organizer follow-up");
   await dialog.getByRole("button", { name: "Save private note" }).click();
   await expect(dialog).toHaveCount(0);
-  await page.getByText("Export cohort CSVs", { exact: true }).click();
-  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Outcomes CSV", exact: true }).click()]);
+  await page.getByRole("button", { name: "Export cohort CSVs", exact: true }).click();
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "Outcomes CSV", exact: true }).click()]);
   const csv = await readFile((await download.path())!, "utf8");
   expect(csv).toContain("Self-reported; unverified"); expect(csv).not.toContain("PRIVATE");
   await page.setViewportSize({ width: 320, height: 900 });
   await trigger.click(); await dialog.getByRole("button", { name: "Mark check-in resolved" }).click();
   await expect(dialog).toHaveCount(0); await expect(trigger).toHaveCount(0);
-  await page.getByLabel("Needs attention only", { exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "Needs attention only", exact: true }).uncheck();
   await expect(trigger).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: "test-results/command-center-mobile.png", fullPage: true });

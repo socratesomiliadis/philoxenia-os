@@ -38,8 +38,7 @@ async function importSession(page: Page, entries: Opportunity[] = []) {
 test("organizers configure bounded imports, refresh, inspect usage and retry a CSV at mobile widths", async ({ page }) => {
   const errors: string[] = []; page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (message) => { if (message.type() === "error" && !message.text().includes("[CONVEX M(ingestion:importYc)] Row 2:")) errors.push(message.text()); });
-  await importSession(page); await page.goto("/organizer");
-  await page.getByRole("button", { name: "Manage imports", exact: true }).click();
+  await importSession(page); await page.goto("/organizer#imports");
   const source = page.getByRole("heading", { name: "Luma · iCal", exact: true }).locator("..").locator("..");
   await source.getByRole("button", { name: "Configure source", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Configure Luma · iCal", exact: true });
@@ -73,7 +72,7 @@ test("organizers configure bounded imports, refresh, inspect usage and retry a C
 });
 
 test("preview shows import setup without making provider requests", async ({ page }) => {
-  await page.goto("/preview/organizer"); await page.getByRole("button", { name: "Manage imports", exact: true }).click();
+  await page.goto("/preview/organizer#imports");
   await expect(page.getByRole("heading", { name: "Recent import runs", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Configure source", exact: true }).first()).toBeDisabled();
   await page.setViewportSize({ width: 320, height: 900 });
@@ -90,7 +89,7 @@ test("all-day Luma opportunities show dates and unknown pricing without inventin
   const dialog = page.getByRole("dialog", { name: "Builders conference", exact: true });
   await expect(dialog.getByText("Price not confirmed", { exact: true })).toBeVisible();
   await expect(dialog.getByText(/Adding it to your Sprint creates an untimed planning task/)).toBeVisible();
-  await page.keyboard.press("Escape"); await page.goto("/organizer");
+  await page.keyboard.press("Escape"); await page.goto("/organizer#opportunities");
   await page.getByRole("button", { name: "Edit Builders conference", exact: true }).click();
   await expect(page.getByLabel("First day", { exact: true })).toHaveValue("2026-10-20");
   await expect(page.getByLabel("Last day (optional)", { exact: true })).toHaveValue("2026-10-22");

@@ -15,7 +15,7 @@ export function EntryLayout({ children, onboarding = false }: { children: ReactN
     </section>
     <section aria-label={onboarding ? "Set up your mission" : "Sign in"} className={`scrollbar-thin flex min-w-0 flex-col pb-5 [--scrollbar-thumb:var(--foreground)] [--scrollbar-track:transparent] lg:overflow-y-auto lg:overscroll-y-contain lg:pt-10 lg:pb-6 ${onboarding ? "px-1 pt-5 sm:px-6 sm:pt-8 lg:px-8 xl:px-10" : "px-3 pt-8 sm:px-10 sm:pt-12 lg:px-8 xl:px-16"}`}>
       <div className={`mx-auto flex w-full flex-1 flex-col ${onboarding ? "max-w-[640px] justify-start lg:justify-center lg:py-4" : "max-w-[480px] justify-center py-6 lg:py-16"}`}>{children}</div>
-      <footer className="mx-auto mt-6 w-full text-end text-xs text-muted lg:mt-0"><p><a href="https://philoxenia.hustlehours.com/" target="_blank" rel="noopener noreferrer" className="rounded-sm text-forest underline decoration-forest/30 underline-offset-4 transition-colors hover:decoration-forest">Philoxenia</a> by Hustle Hours</p></footer>
+      <footer className="mx-auto mt-6 w-full text-end text-xs text-muted-foreground lg:mt-0"><p><a href="https://philoxenia.hustlehours.com/" target="_blank" rel="noopener noreferrer" className="rounded-sm text-forest underline decoration-forest/30 underline-offset-4 transition-colors hover:decoration-forest">Philoxenia</a> by Hustle Hours</p></footer>
     </section>
   </main>;
 }

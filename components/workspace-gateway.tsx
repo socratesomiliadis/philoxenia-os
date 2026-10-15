@@ -47,7 +47,7 @@ function AuthenticatedGateway({ children }: { children: ReactNode }) {
   if (isLoading || (isAuthenticated && viewer === undefined)) return <LoadingState />;
   if (!isAuthenticated || !viewer) return <SignInScreen />;
   if (!viewer.allowed) return <AccessDenied email={viewer.email} />;
-  if (needsProvisioning) return provisionError ? <div className="mx-auto max-w-md space-y-4 p-10"><InlineError message={provisionError} /><ActionButton onPress={() => { setProvisionError(null); setRetry((count) => count + 1); }}>Try again</ActionButton></div> : <LoadingState label="Joining your cohort…" />;
+  if (needsProvisioning) return provisionError ? <div className="mx-auto max-w-md space-y-4 p-10"><InlineError message={provisionError} /><ActionButton onClick={() => { setProvisionError(null); setRetry((count) => count + 1); }}>Try again</ActionButton></div> : <LoadingState label="Joining your cohort…" />;
   return <MemberWorkspace viewer={viewer}>{children}</MemberWorkspace>;
 }
 
@@ -75,5 +75,5 @@ function AccessDenied({ email }: { email: string }) {
       router.refresh();
     } catch { setError("Could not switch accounts. Please try again."); }
   }
-  return <main className="flex min-h-dvh items-center justify-center bg-canvas p-6"><section className="w-full max-w-lg rounded-[20px] border border-line bg-white p-7 shadow-panel sm:p-9"><ShieldX className="mb-6 size-8 text-forest" aria-hidden /><h1 className="text-3xl font-medium tracking-tight text-foreground">An invitation is needed.</h1><p className="mt-4 text-sm leading-7 wrap-anywhere text-muted">{email} doesn’t have an active invitation. Sign in with your invited Google account or ask your organizer to check your access.</p><div className="mt-6"><ActionButton onPress={switchAccount}>Use another account</ActionButton></div><div className="mt-4"><InlineError message={error} /></div></section></main>;
+  return <main className="flex min-h-dvh items-center justify-center bg-canvas p-6"><section className="w-full max-w-lg rounded-[20px] border border-line bg-white p-7 shadow-panel sm:p-9"><ShieldX className="mb-6 size-8 text-forest" aria-hidden /><h1 className="text-3xl font-medium tracking-tight text-foreground">An invitation is needed.</h1><p className="mt-4 text-sm leading-7 wrap-anywhere text-muted-foreground">{email} doesn’t have an active invitation. Sign in with your invited Google account or ask your organizer to check your access.</p><div className="mt-6"><ActionButton onClick={switchAccount}>Use another account</ActionButton></div><div className="mt-4"><InlineError message={error} /></div></section></main>;
 }

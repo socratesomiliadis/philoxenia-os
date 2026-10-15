@@ -99,16 +99,16 @@ function SignInContent({
           id="sign-in-heading"
           className="text-[28px] leading-tight font-medium tracking-[-0.045em] text-foreground sm:text-[40px]"
         >
-          Welcome, <span className="text-accent">Hustler.</span>
+          Welcome, <span className="text-forest">Hustler.</span>
         </h2>
-        <p className="text-sm leading-6 text-muted">
+        <p className="text-sm leading-6 text-muted-foreground">
           Sign in with the Google account you were invited with.
         </p>
         <div className="mt-8">
           <ActionButton
-            onPress={signIn}
+            onClick={signIn}
             busy={busy}
-            isDisabled={!ready}
+            disabled={!ready}
             className="h-auto min-h-14 w-full gap-3 rounded-xl px-4 py-3 text-sm"
           >
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white">
@@ -128,7 +128,7 @@ function SignInContent({
             </div>
           ) : null}
           {!ready && !checking ? (
-            <p className="mt-5 text-sm leading-6 text-muted">
+            <p className="mt-5 text-sm leading-6 text-muted-foreground">
               Your organizer will let you know when sign-in is ready.
             </p>
           ) : null}

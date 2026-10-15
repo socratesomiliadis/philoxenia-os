@@ -150,10 +150,11 @@ test("connected request retries, alumnus decisions, Sprint attendance and outcom
   await page.getByRole("button", { name: "View request", exact: true }).click();
   await page.getByLabel("What happened during this support?", { exact: true }).fill("We reviewed my prototype and improved its story together.");
   await page.getByRole("button", { name: "Report support completed", exact: true }).click();
-  session.setRole("organizer"); await page.goto("/organizer");
+  session.setRole("organizer"); await page.goto("/organizer#participants");
   await page.getByRole("button", { name: "Manage Test Hustler", exact: true }).click();
   await page.getByRole("menuitem", { name: "Graduate to alumni", exact: true }).click();
   await expect(page.getByText("Alumnus", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Open Doors", exact: true }).click();
   await page.getByRole("button", { name: "View request", exact: true }).click();
   await expect(page.getByRole("button", { name: "Approve request", exact: true })).toHaveCount(0);
   await page.getByLabel("Private organizer coordination note", { exact: true }).fill("Follow up on the participant’s next project review.");
